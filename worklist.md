@@ -7,7 +7,10 @@
    4. Search string
 2. BE gets text
    1. Search string to SerpAPI Google News Light API
-   2. Run biasing
-   3. Run summarization
-   4. Generate visualization
+   2. Fetch 5 news
+   3. Run biasing
+      1. Personal biasing checks
+      2. Left/Right political checks
+   4. Run summarization
+   5. Generate visualization
 3. FE gets visuals
