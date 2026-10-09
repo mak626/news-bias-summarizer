@@ -8,6 +8,18 @@ from curl_cffi.requests import AsyncSession
 logger = logging.getLogger(__name__)
 
 MIN_VALID_TEXT_LENGTH = 100  # Threshold to ensure content is meaningful news text
+HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 
 async def fetch_and_clean_article_content(url: str, timeout: float = 6.0) -> Optional[str]:
@@ -42,28 +54,16 @@ async def fetch_and_clean_article_content(url: str, timeout: float = 6.0) -> Opt
 
 async def _fetch_with_curl_cffi(url: str, timeout: float) -> Optional[str]:
     """Fetch using curl_cffi with Chrome 124 TLS fingerprinting to bypass 403 blocks."""
-    headers = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-    }
     try:
         async with AsyncSession(impersonate="chrome124") as session:
-            response = await session.get(url, headers=headers, timeout=timeout)
+            response = await session.get(url, headers=HEADERS, timeout=timeout)
             if response.status_code == 200:
                 return response.text
             else:
-                logger.warning(f"curl_cffi fetch for {url} returned HTTP {response.status_code}")
+                logger.warning(f"Fetch for {url} returned HTTP {response.status_code}")
                 return None
     except Exception as e:
-        logger.debug(f"curl_cffi fetch error for {url}: {e}")
+        logger.debug(f"Fetch error for {url}: {e}")
         return None
 
 
