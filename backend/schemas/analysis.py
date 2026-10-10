@@ -4,6 +4,12 @@ from .article import NewsArticle
 from .summary import SummaryResult
 
 
+class VisualizationData(BaseModel):
+    spectrum: List[Dict[str, Any]] = Field(default_factory=list, description="Distribution across Left, Center, Right")
+    average_bias: float = Field(0.0, description="Average bias score from -1.0 to 1.0")
+    groups_count: Dict[str, int] = Field(default_factory=dict, description="Count of articles per political spectrum bucket")
+
+
 class AnalysisRequest(BaseModel):
     search_query: str = Field(..., description="Search string for Google News API via SerpAPI")
     url: Optional[str] = Field(None, description="Optional original URL of the news article")
@@ -16,11 +22,5 @@ class AnalysisResponse(BaseModel):
     query_used: str
     articles_fetched_count: int
     articles: List[NewsArticle]
-    summary: Optional[SummaryResult] = Field(default_factory=SummaryResult, description="AI Summarization result")
-    visualization_data: Optional[Dict[str, Any]] = Field(
-        default_factory=lambda: {
-            "status": "TODO",
-            "message": "AI biasing visualization will be generated here"
-        },
-        description="Visualization data structure"
-    )
+    summary: SummaryResult
+    visualization_data: VisualizationData

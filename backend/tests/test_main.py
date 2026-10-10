@@ -71,17 +71,20 @@ async def test_news_processor_failover_count():
 
 
 def test_analyze_endpoint_live():
-    payload = {
-        "search_query": "renewable energy breakthroughs",
-        "num_articles": 5
-    }
-    response = client.post("/api/v1/analyze", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "success"
-    assert "articles" in data
-    assert "summary" in data
-    assert "visualization_data" in data
+    with patch.object(settings, "MOCK_MODE", False):
+        payload = {
+            "search_query": "renewable energy breakthroughs",
+            "num_articles": 5
+        }
+        response = client.post("/api/v1/analyze", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert len(data["articles"]) == 5
+        assert "summary" in data
+        assert "bias_groups" in data["summary"]
+        assert "visualization_data" in data
+        assert "spectrum" in data["visualization_data"]
 
 
 def test_analyze_endpoint_mock_mode():
@@ -92,4 +95,6 @@ def test_analyze_endpoint_mock_mode():
         data = response.json()
         assert data["status"] == "success"
         assert len(data["articles"]) == 5
-        assert data["articles"][0]["source"] == "Al Jazeera"
+        assert bool(data["articles"][0]["source"])
+        assert "bias_groups" in data["summary"]
+        assert len(data["summary"]["bias_groups"]) == 3

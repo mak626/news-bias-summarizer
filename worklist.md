@@ -20,17 +20,19 @@
 - [x] **2.3 Fetch content of news pages & clean it up**
   - HTML extraction, script/boilerplate removal, anti-bot bypass via `curl_cffi` + reader fallback: [`backend/services/article_scraper.py`](backend/services/article_scraper.py)
   - Automatic failover retry if parsing fails until total count is 5: [`backend/services/news_processor.py`](backend/services/news_processor.py)
-- [ ] **2.4 Run biasing**
-  - [ ] **2.4.1 Personal biasing checks**
-    - File paths: [`backend/services/news_processor.py`](backend/services/news_processor.py), [`backend/schemas/bias.py`](backend/schemas/bias.py)
-  - [ ] **2.4.2 Left/Right political checks**
-    - File paths: [`backend/services/news_processor.py`](backend/services/news_processor.py), [`backend/schemas/bias.py`](backend/schemas/bias.py)
-- [ ] **2.5 Run summarization**
-  - Aggregate multi-outlet summaries and key points
-  - File paths: [`backend/services/news_processor.py`](backend/services/news_processor.py), [`backend/schemas/summary.py`](backend/schemas/summary.py), [`backend/api/routes.py`](backend/api/routes.py)
-- [ ] **2.6 Generate visualization data**
-  - Format bias scores and distribution data for frontend rendering
-  - File paths: [`backend/api/routes.py`](backend/api/routes.py), [`backend/schemas/analysis.py`](backend/schemas/analysis.py)
+- [x] **2.4 Run biasing**
+  - [x] **2.4.1 Personal biasing checks**
+    - Implemented in [`backend/services/ai_bias_service.py`](backend/services/ai_bias_service.py), [`backend/schemas/bias.py`](backend/schemas/bias.py)
+  - [x] **2.4.2 Left/Right political checks & grouping**
+    - Implemented in [`backend/services/ai_bias_service.py`](backend/services/ai_bias_service.py), [`backend/schemas/bias.py`](backend/schemas/bias.py)
+- [x] **2.5 Run summarization via SerpAPI Google AI Mode**
+  - Multi-outlet summary, key points, and bias grouping
+  - Implemented in [`backend/services/ai_bias_service.py`](backend/services/ai_bias_service.py), [`backend/schemas/summary.py`](backend/schemas/summary.py), [`backend/api/routes.py`](backend/api/routes.py)
+- [x] **2.6 Generate visualization data**
+  - Format bias scores, political spectrum counts, and distribution data
+  - Implemented in [`backend/services/ai_bias_service.py`](backend/services/ai_bias_service.py), [`backend/schemas/analysis.py`](backend/schemas/analysis.py)
+- [x] **2.7 Cache response for Mock Mode**
+  - Persists latest live analysis response to [`backend/data/mock_response.json`](backend/data/mock_response.json)
 
 ---
 

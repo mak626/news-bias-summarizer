@@ -1,12 +1,14 @@
 from .bias import ArticleBias
 from .article import NewsArticle
-from .summary import SummaryResult
-from .analysis import AnalysisRequest, AnalysisResponse
+from .summary import SummaryResult, BiasGroup
+from .analysis import AnalysisRequest, AnalysisResponse, VisualizationData
 
 __all__ = [
     "ArticleBias",
     "NewsArticle",
     "SummaryResult",
+    "BiasGroup",
     "AnalysisRequest",
-    "AnalysisResponse"
+    "AnalysisResponse",
+    "VisualizationData"
 ]
