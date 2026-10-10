@@ -1,6 +1,18 @@
-# News Bias Summarizer
+# Nonpartisan
 
-A full-stack media intelligence platform and news bias summarizer that analyzes news coverage, summarizes contrasting perspectives, visualizes viewpoint spectrums across diverse media outlets, and serves persistent editions via an interactive web portal and Chrome extension.
+> **Note**: This project was created as part of the **SerpApi India Hackathon 2026**.
+
+**Nonpartisan** is a full-stack media intelligence platform and news bias summarizer that analyzes news coverage, summarizes contrasting perspectives, visualizes viewpoint spectrums across diverse media outlets, and serves persistent editions via an interactive web portal and Chrome extension.
+
+---
+
+## Project Members
+
+- Aby M Joseph ([@abymjoseph18](https://github.com/abymjoseph18))
+- M Aswin Kishore ([@mak626](https://github.com/mak626))
+- Ajith Kumar P M ([@ajth-in](https://github.com/ajth-in))
+- Muhammed Mizaj ([@muhammed-mizaj](https://github.com/muhammed-mizaj))
+- Abhinand C ([@abhinand-c](https://github.com/abhinand-c))
 
 ---
 
@@ -68,7 +80,6 @@ A full-stack media intelligence platform and news bias summarizer that analyzes 
 - **[`extension/`](extension/)**: Manifest V3 Chrome Extension built with WXT, React, TypeScript, and `pnpm`. Features real-time backend connection status monitoring, offline error handling, and in-page news extraction.
 - **[`web/`](web/)**: Editorial web application displaying edition top stories, multi-perspective breakdowns, interactive viewpoint spectrums, and Lens Lab analysis.
 - **[`Makefile`](Makefile)**: Global project orchestration script for installing dependencies, running dev servers, building the extension, and running automated tests.
-- **[`worklist.md`](worklist.md)**: Engineering task checklist tracking architecture migrations, features, and QA status.
 
 ---
 
@@ -91,10 +102,7 @@ A full-stack media intelligence platform and news bias summarizer that analyzes 
    - Extension includes real-time backend health checking (`/health`) and displays helpful error banners with retry buttons if the backend service is offline.
 5. **Unified API & Frontend Serving on Port 8000**:
    - FastAPI serves API routes, static SVG editorial illustrations (`/static/illustrations/{art}.svg`), and mounts the web UI dashboard at `/web`.
-6. **Strict Test Database Isolation**:
-   - Automated tests run against isolated session-scoped temporary DuckDB copies.
-   - Hard safety guard in `backend/database.py` prevents test executions from ever reading or modifying the production DuckDB file.
-7. **Free SerpAPI Quota Monitoring (`GET /api/v1/serpapi/balance`)**:
+6. **Free SerpAPI Quota Monitoring (`GET /api/v1/serpapi/balance`)**:
    - Inspect remaining monthly searches, hourly rate limits, and plan details without consuming search credits.
 
 ---
@@ -179,3 +187,4 @@ pnpm build
 
 For detailed backend architecture documentation, database schemas, and API references, see [`backend/README.md`](backend/README.md).
 For extension architecture, see [`extension/README.md`](extension/README.md).
+
