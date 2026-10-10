@@ -1,8 +1,50 @@
 import { useState } from 'react';
 import independentLogo from '@/assets/independent.png';
+import { PARSE_ARTICLE_MESSAGE } from '@/utils/parsers';
 import './App.css';
 
 const SITE_URL = 'https://nonpartisan.ink';
+
+/**
+ * Self-contained fallback parser injected via `scripting.executeScript`
+ * (runs in the page, so it can't close over popup-scope imports —
+ * the switch-case is intentionally inlined here).
+ */
+function parseArticleInPage(): string | null {
+  let parser: 'indian-express' | 'unknown' = 'unknown';
+  try {
+    const parsed = new URL(window.location.href);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    switch (host) {
+      case 'indianexpress.com':
+        if (parsed.pathname.startsWith('/article/')) {
+          parser = 'indian-express';
+        }
+        break;
+      default:
+        parser = 'unknown';
+        break;
+    }
+  } catch {
+    parser = 'unknown';
+  }
+
+  switch (parser) {
+    case 'indian-express': {
+      const title =
+        document
+          .querySelector('h1[itemprop="headline"]')
+          ?.textContent?.trim() ?? '';
+      const synopsis =
+        document
+          .querySelector('h2[itemprop="description"]')
+          ?.textContent?.trim() ?? '';
+      return [title, synopsis].filter(Boolean).join(' ') || null;
+    }
+    default:
+      return null;
+  }
+}
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
@@ -10,20 +52,39 @@ function App() {
   const handleViewAllPerspectives = async () => {
     setIsLoading(true);
     try {
-      // Grab the current tab so we can pass what the user is about to read.
+      // Grab the current tab so we can parse what the user is about to read.
       const tabs = await browser.tabs.query({
         active: true,
         currentWindow: true,
       });
-      const currentUrl = tabs[0]?.url;
-      const target =
-        currentUrl && /^https?:\/\//.test(currentUrl)
-          ? `${SITE_URL}/?url=${encodeURIComponent(currentUrl)}`
-          : SITE_URL;
-      await browser.tabs.create({ url: target });
+      const tab = tabs[0];
+
+      let articleText: string | null = null;
+
+      if (tab?.id !== undefined) {
+        // 1. Preferred path: ask the content script (registered on Indian Express pages).
+        try {
+          const response = (await browser.tabs.sendMessage(tab.id, {
+            type: PARSE_ARTICLE_MESSAGE,
+          })) as { text?: string | null };
+          articleText = response?.text ?? null;
+        } catch {
+          // 2. Fallback: no content script on this tab — inject the parser directly.
+          try {
+            const [result] = await browser.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: parseArticleInPage,
+            });
+            articleText = (result?.result as string | null) ?? null;
+          } catch {
+            articleText = null;
+          }
+        }
+      }
+
+      console.log('[Nonpartisan] article text:', articleText);
     } catch {
-      // Fallback if tabs permission / API is unavailable.
-      window.open(SITE_URL, '_blank', 'noopener,noreferrer');
+      console.log('[Nonpartisan] article text:', null);
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +121,7 @@ function App() {
           onClick={handleViewAllPerspectives}
           disabled={isLoading}
         >
-          {isLoading ? 'Opening…' : 'View all perspectives'}
+          {isLoading ? 'Reading…' : 'View all perspectives'}
         </button>
       </main>
 
