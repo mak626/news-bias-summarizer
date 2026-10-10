@@ -8,5 +8,6 @@ export default defineConfig({
     description: 'See all the different perspectives of what you are about to read.',
     action: {},
     permissions: ['tabs', 'scripting', 'activeTab'],
+    host_permissions: ['http://localhost:8008/*'],
   },
 });

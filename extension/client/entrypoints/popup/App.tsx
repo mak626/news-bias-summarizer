@@ -4,6 +4,28 @@ import { PARSE_ARTICLE_MESSAGE } from '@/utils/parsers';
 import './App.css';
 
 const SITE_URL = 'https://nonpartisan.ink';
+const SUMMARIZE_API_URL = 'http://localhost:8008/';
+
+/** Pull the news-group id out of the API response (JSON object, JSON string, or plain text). */
+function extractNewsGroupId(raw: string): string | null {
+  const trimmed = raw.trim().replace(/^"|"$/g, '');
+  if (!trimmed) return null;
+  try {
+    const data: unknown = JSON.parse(trimmed);
+    if (typeof data === 'string' && data.trim()) return data.trim();
+    if (typeof data === 'object' && data !== null) {
+      const record = data as Record<string, unknown>;
+      for (const key of ['id', 'news_group_id', 'group_id', 'groupId', 'newsGroupId']) {
+        const value = record[key];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+        if (typeof value === 'number') return String(value);
+      }
+    }
+  } catch {
+    // Not JSON — treat the raw body as the id itself.
+  }
+  return trimmed || null;
+}
 
 /**
  * Self-contained fallback parser injected via `scripting.executeScript`
@@ -83,8 +105,31 @@ function App() {
       }
 
       console.log('[Nonpartisan] article text:', articleText);
-    } catch {
-      console.log('[Nonpartisan] article text:', null);
+
+      if (!articleText) {
+        console.warn('[Nonpartisan] no article text found on this page.');
+        return;
+      }
+
+      // Send the parsed text for summarization; the API returns a news-group id.
+      const response = await fetch(SUMMARIZE_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: articleText }),
+      });
+      if (!response.ok) {
+        throw new Error(`Summarize API failed with status ${response.status}`);
+      }
+      const newsGroupId = extractNewsGroupId(await response.text());
+      if (!newsGroupId) {
+        throw new Error('Summarize API returned an empty id');
+      }
+
+      await browser.tabs.create({
+        url: `${SITE_URL}/news-group/${newsGroupId}`,
+      });
+    } catch (error) {
+      console.error('[Nonpartisan] failed to load perspectives:', error);
     } finally {
       setIsLoading(false);
     }
