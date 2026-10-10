@@ -1,6 +1,6 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "nonpartisan",
+  "description": "See all the different perspectives of what you are about to read.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
