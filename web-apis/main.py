@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections import Counter
 from enum import Enum
 from pathlib import Path
@@ -11,19 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+import database
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIST = BASE_DIR.parent / "web" / "dist"
 
 
-def load_source_data() -> dict[str, Any]:
-    with (BASE_DIR / "data" / "content.json").open(encoding="utf-8") as fixture:
-        return json.load(fixture)
-
-
-DATA = load_source_data()
-EDITION = DATA["edition"]
-LAB = DATA["lab"]
+database.initialize()
 
 
 class Alignment(str, Enum):
@@ -279,7 +272,7 @@ def linked_item(item: dict[str, Any], model: type[Claim] | type[Perspective]):
 
 def story_detail(request: Request, story: dict[str, Any]) -> StoryDetail:
     card = story_card(request, story).model_dump()
-    all_ids = [item["id"] for item in EDITION["stories"] if item["id"] != story["id"]]
+    all_ids = database.india_story_ids(exclude=story["id"])
     return StoryDetail(
         **card,
         summary=story["summary"], takeaway=story["takeaway"],
@@ -292,7 +285,7 @@ def story_detail(request: Request, story: dict[str, Any]) -> StoryDetail:
 
 
 def lab_image(story: dict[str, Any]) -> ImageAsset:
-    visual = LAB["visuals"][story["id"]]
+    visual = story["visual"]
     return ImageAsset(
         kind="photo", url=visual["image"], alt=visual["alt"], credit=visual["credit"],
         source_url=visual["source"], license=visual["license"], license_url=visual["licenseUrl"],
@@ -308,10 +301,11 @@ def lab_card(story: dict[str, Any]) -> LabStoryCard:
 
 
 def lab_detail(story: dict[str, Any]) -> LabStoryDetail:
-    dimensions = LAB["dimensions"]
+    dimensions = database.lab_dimensions()
+    media = database.lab_media()
     articles = []
     for position, media_id in enumerate(story["ids"]):
-        publisher = LAB["media"][media_id]
+        publisher = media[media_id]
         classifications = {dimension["id"]: dimension["labels"][publisher[dimension["id"]]] for dimension in dimensions}
         included = [context for index, context in enumerate(story["contexts"]) if 2 - publisher["gaps"] >= index]
         articles.append(LabArticle(
@@ -359,14 +353,15 @@ def root():
 
 @app.get("/health", tags=["Health"], summary="Check service health")
 def health():
-    return {"status": "healthy", "stories": len(EDITION["stories"]), "lab_stories": len(LAB["stories"])}
+    stories, lab_stories = database.counts()
+    return {"status": "healthy", "database": "duckdb", "stories": stories, "lab_stories": lab_stories}
 
 
 @app.get("/api/v1/edition", response_model=EditionResponse, tags=["Edition"])
 def get_edition():
-    stories = EDITION["stories"]
+    stories = database.india_stories()
     return EditionResponse(
-        checked=EDITION["checked"], through=EDITION["through"], lead_story_id=stories[0]["id"],
+        checked=database.metadata("edition_checked"), through=database.metadata("edition_through"), lead_story_id=stories[0]["id"],
         story_count=len(stories), categories=sorted({story["category"] for story in stories}),
         topics=sorted({topic for story in stories for topic in story.get("topics", [])}),
         alignment_groups=[{"id": key, "label": label} for key, label in ALIGNMENTS],
@@ -382,24 +377,14 @@ def list_stories(
     topic: str | None = Query(None, description="Topic ID, such as narendra-modi"),
     q: str | None = Query(None, description="Case-insensitive search across story and publisher text"),
 ):
-    stories = EDITION["stories"]
-    if category:
-        stories = [story for story in stories if story["category"].casefold() == category.casefold()]
-    if topic:
-        stories = [story for story in stories if topic in story.get("topics", [])]
-    if q:
-        needle = q.casefold()
-        stories = [story for story in stories if needle in " ".join([
-            story["title"], story["dek"], story["place"], story["category"],
-            *[report["publisher"] for report in story["reports"]],
-        ]).casefold()]
+    stories = database.india_stories(category=category, topic=topic, query=q)
     items = [story_card(request, story) for story in stories]
     return StoryList(items=items, total=len(items))
 
 
 @app.get("/api/v1/stories/{story_id}", response_model=StoryDetail, tags=["Stories"], summary="Get one India story comparison")
 def get_story(story_id: str, request: Request):
-    story = next((story for story in EDITION["stories"] if story["id"] == story_id), None)
+    story = database.india_story(story_id)
     if not story:
         raise HTTPException(404, detail=f"Story '{story_id}' was not found")
     return story_detail(request, story)
@@ -407,10 +392,12 @@ def get_story(story_id: str, request: Request):
 
 @app.get("/api/v1/lab", response_model=LabResponse, tags=["Lens Lab"])
 def get_lab():
+    stories = database.lab_stories()
+    dimensions = database.lab_dimensions()
     return LabResponse(
         notice="Stories, publishers, excerpts, and assessments in the lens lab are fictional demonstration content.",
-        categories=sorted({story["category"] for story in LAB["stories"]}),
-        lenses=[LensDefinition(**{key: value for key, value in lens.items() if key in {"id", "name", "title", "labels", "description"}}) for lens in LAB["dimensions"]],
+        categories=sorted({story["category"] for story in stories}),
+        lenses=[LensDefinition(**{key: value for key, value in lens.items() if key in {"id", "name", "title", "labels", "description"}}) for lens in dimensions],
         methodology="Each article receives one classification per lens. Counts apply only to the selected fictional sample.",
     )
 
@@ -420,19 +407,14 @@ def list_lab_stories(
     category: str | None = Query(None, description="Exact lab category"),
     q: str | None = Query(None, description="Search lab titles, descriptions, and summaries"),
 ):
-    stories = LAB["stories"]
-    if category:
-        stories = [story for story in stories if story["category"].casefold() == category.casefold()]
-    if q:
-        needle = q.casefold()
-        stories = [story for story in stories if needle in f"{story['title']} {story['short']} {story['summary']}".casefold()]
+    stories = database.lab_stories(category=category, query=q)
     items = [lab_card(story) for story in stories]
     return LabStoryList(items=items, total=len(items))
 
 
 @app.get("/api/v1/lab/stories/{story_id}", response_model=LabStoryDetail, tags=["Lens Lab"])
 def get_lab_story(story_id: str):
-    story = next((story for story in LAB["stories"] if story["id"] == story_id), None)
+    story = database.lab_story(story_id)
     if not story:
         raise HTTPException(404, detail=f"Lab story '{story_id}' was not found")
     return lab_detail(story)
