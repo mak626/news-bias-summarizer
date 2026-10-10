@@ -251,6 +251,8 @@ Ensure your `SERP_API_KEY` is set in `.env`.
 ### 3. Start Development Server
 ```bash
 uv run uvicorn main:app --reload --port 8000
+# Or using make:
+make dev
 ```
 - **Web UI**: [http://localhost:8000/web/index.html](http://localhost:8000/web/index.html)
 - **Interactive API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
@@ -259,6 +261,8 @@ uv run uvicorn main:app --reload --port 8000
 ### 4. Run Automated Tests
 ```bash
 uv run pytest
+# Or using make:
+make test
 ```
 Output:
 ```text
@@ -266,3 +270,14 @@ tests/test_main.py .............                                         [100%]
 ============================= 13 passed in 4.18s ==============================
 ```
 *(All 13 tests execute against an isolated temporary DuckDB file; the production database `data/nonpartisan.duckdb` is never modified).*
+
+### 5. Makefile Command Reference
+| Command | Action |
+| :--- | :--- |
+| `make install` | Sync virtual environment dependencies with `uv` |
+| `make dev` | Start development server with reload on port 8000 |
+| `make test` | Run pytest suite |
+| `make test-v` | Run pytest suite with verbose output |
+| `make db-info` | Display active DuckDB file path and story counts |
+| `make clean` | Clean up `__pycache__` and `.pytest_cache` directories |
+
