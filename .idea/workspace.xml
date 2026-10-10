@@ -4,16 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="45937bba-33ba-4dd3-8f24-00810ef2fec4" name="Changes" comment="Added DUCKDB content">
+    <list default="true" id="45937bba-33ba-4dd3-8f24-00810ef2fec4" name="Changes" comment="Updated web with web-api's feeding the content">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web-apis/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/web-apis/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web-apis/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/web-apis/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web-apis/openapi.json" beforeDir="false" afterPath="$PROJECT_DIR$/web-apis/openapi.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/dist/app.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/web/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/dist/news-data.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/web/dist/news.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/news.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/dist/story-visuals.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/web/dist/story.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/story.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/dist/story.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/story.js" afterDir="false" />
     </list>
@@ -56,7 +50,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791617863952</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Updated web with web-api's feeding the content">
+      <option name="closed" value="true" />
+      <created>1791622474791</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1791622474791</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -64,6 +66,7 @@
     <MESSAGE value="Added New componets in listing &amp; details page" />
     <MESSAGE value="Added backend mock for landing &amp; listing page" />
     <MESSAGE value="Added DUCKDB content" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added DUCKDB content" />
+    <MESSAGE value="Updated web with web-api's feeding the content" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated web with web-api's feeding the content" />
   </component>
 </project>

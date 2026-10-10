@@ -33,6 +33,9 @@
     render();
   });
   document.querySelector('#india-search').addEventListener('input',event=>{filters.query=event.target.value.trim().toLowerCase();render();});
-  document.querySelectorAll('#hook-button, #perspective-button').forEach(button=>button.addEventListener('click',()=>{location.href=leadPath;}));
+  document.querySelectorAll('#hook-button, #perspective-button').forEach(button=>button.addEventListener('click',()=>{
+    if(window.NewsPageTransition)window.NewsPageTransition.navigate(leadPath);
+    else location.href=leadPath;
+  }));
   render();
 })();

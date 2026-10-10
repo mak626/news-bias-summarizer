@@ -1,0 +1,38 @@
+:root {
+  --font-news-sans: "Knowledge", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-news-serif: "Knowledge Serif", "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+html, body, button, input, select, textarea {
+  font-family: var(--font-news-sans) !important;
+  font-optical-sizing: auto;
+}
+
+h1, h2, h3, h4,
+.brand, .brand span.ink, .report-brand strong,
+.news-title, .story-card h3, .story-head h2,
+.title-row h2, .source-toolbar h4, .dialog-title,
+.report-titleblock h1, .report-titleblock p,
+.report-story-id h2, .reports-heading h2,
+.source-meta h3, .source-report > h4,
+.content-panel > h2, .questions-card h2, .coverage-card h2,
+.related-reports h2, .related-card h3, .perspective-card h3,
+.report-method h2 {
+  font-family: var(--font-news-serif) !important;
+  font-optical-sizing: auto;
+}
+
+p, li, label, a, span, small, strong, summary {
+  font-family: inherit;
+}
+
+.eyebrow, .india-eyebrow, .news-kicker, .story-category,
+.content-kicker, .coverage-kicker, .card-meta, .india-card-meta {
+  font-family: var(--font-news-sans) !important;
+  font-weight: 700;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}

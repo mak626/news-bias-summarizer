@@ -1,46 +1,122 @@
-(async () => {
-  const ui=IndiaCoverage, esc=ui.escape;
+(async()=>{
   const root=document.querySelector('#story-page');
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   let edition;
-  try { edition=await NewsApi.loadEdition(); }
-  catch (error) {
-    root.innerHTML='<section class="india-not-found"><h1>Coverage API unavailable</h1><p>Start the web API on port 8001, then reload this page.</p><a class="primary" href="index.html">Back home</a></section>';
-    console.error(error); return;
-  }
-  const story=ui.get(new URLSearchParams(location.search).get('id'));
-  if(!story){root.innerHTML='<section class="india-not-found"><h1>Story not found</h1><p>Choose a story from the India edition.</p><a class="primary" href="index.html#headlines">Browse the news</a></section>';return;}
+  try{edition=await NewsApi.loadEdition();}
+  catch(error){root.innerHTML='<div class="report-empty"><h1>Coverage API unavailable</h1><p>Start the web API on port 8001, then reload this page.</p></div>';console.error(error);return;}
+  const id=new URLSearchParams(location.search).get('id');
+  const story=edition.stories.find(item=>item.id===id);
+  if(!story){root.innerHTML='<div class="report-empty"><h1>Story not found</h1><p><a href="index.html#headlines">Browse all reports</a></p></div>';return;}
+
   document.title=`${story.title} — nonpartisan.ink`;
-  const footerDate=document.querySelector('footer > span');if(footerDate)footerDate.textContent=`Sources checked ${edition.checked}`;
-  const view={lens:'alignment',filter:'all'};
-  const methods= `<details class="india-method" id="assessment-method"><summary>How these framing assessments work <span aria-hidden="true">＋</span></summary><div><p>These are editorial inferences about individual articles, checked on ${indiaEdition.checked}. They are not party affiliations, factuality scores or a claim about a publisher’s entire output.</p><dl><dt>Opposition / critical</dt><dd>Coverage foregrounds criticism of the central government or accountability arguments compatible with opposition concerns. Critics may be independent civil-society actors.</dd><dt>Ruling party / official</dt><dd>The headline, sourcing or narrative favours the central authorities’ justification in a contested domestic story. Reporting an official statement alone is insufficient.</dd><dt>Mixed / contextual</dt><dd>Competing accounts, uncertainty or substantive context are retained without a demonstrated party preference.</dd><dt>Unclear</dt><dd>The material is limited or lacks a meaningful domestic party comparison. No party bias is inferred.</dd></dl><p>Bars count only the reports listed here, one per source family. Related angles are marked. They do not represent all media coverage. Confidence describes the framing inference, not whether the report is true. No high-confidence assessments are assigned in this small manual sample.</p><p>Coverage focus is a separate lens describing what the article foregrounds: rights and scrutiny, context and impacts, or an official response.</p></div></details>`;
-  root.innerHTML=`<div class="india-breadcrumb"><a href="index.html#headlines">← India coverage</a><span>${esc(story.category)} / ${esc(story.place)}</span></div><section class="india-detail-hero"><div><div class="india-detail-kicker"><span>${esc(story.category)}</span><span>${esc(story.date)}</span></div><h1>${esc(story.title)}</h1><p class="india-detail-dek">${esc(story.dek)}</p><div class="india-detail-byline"><span>${story.reports.length} reviewed ${story.reports.length===1?'report':'reports'}</span><span>${esc(story.read)} read</span><span>Checked ${indiaEdition.checked}</span></div><div class="india-detail-actions"><a class="primary" href="#reporting">Compare the reports ↓</a><button class="outline" id="copy-story">Copy story link</button><span id="copy-status" role="status"></span></div></div>${ui.visual(story)}</section><div class="india-detail-layout"><div class="india-detail-main"><section class="india-brief"><span class="india-eyebrow">The story in brief</span><h2>What is being reported</h2><p>${esc(story.summary)}</p><div class="india-takeaway"><span>Keep in mind</span><p>${esc(story.takeaway)}</p></div><div class="india-reference-links">${story.primary?`<a href="${esc(story.primary.url)}" target="_blank" rel="noopener noreferrer">${esc(story.primary.label)} ↗</a>`:''}</div></section><section class="india-claims"><div class="india-section-heading"><div><span class="india-eyebrow">Claims & context</span><h2>Separate the accounts</h2></div></div>${story.claims.map(claim=>`<div class="india-claim"><span class="claim-status ${claim.status.toLowerCase()}">${esc(claim.status)}</span><p>${esc(claim.text)}</p>${ui.sourceLink(story,claim,'Read the reporting ↗')}</div>`).join('')}</section>${story.perspectives.length?`<section class="india-perspectives"><span class="india-eyebrow">The competing positions</span><h2>Different voices, one story</h2><div>${story.perspectives.map(p=>`<article><h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>${ui.sourceLink(story,p,'Inspect the source ↗')}</article>`).join('')}</div></section>`:''}<section id="reporting" class="india-reporting"><div class="india-section-heading"><div><span class="india-eyebrow">Read across the coverage</span><h2>Tap a segment to see why</h2></div><span id="report-count"></span></div><p class="india-reporting-intro">Open each assessment for the evidence and reasoning, then inspect the original report.</p><div class="india-report-filters" id="report-filters"></div><div id="report-list" class="india-report-list" aria-live="polite"></div></section>${methods}</div><aside class="india-detail-aside"><section class="india-coverage-panel"><div class="india-panel-top"><span class="india-eyebrow">Coverage at a glance</span><a href="#assessment-method" aria-label="Read assessment methodology">ⓘ</a></div><h2>How it is framed</h2><div class="india-lens-switch" role="group" aria-label="Story coverage lens"><button data-story-lens="alignment" aria-pressed="true">Government framing</button><button data-story-lens="focus" aria-pressed="false">Coverage focus</button></div><div id="story-distribution"></div><p id="story-distribution-note"></p><a class="india-panel-link" href="#reporting">Explore the evidence ↓</a></section><section class="india-gaps"><span class="india-eyebrow">Questions still open</span><h3>What to look for next</h3><ul>${story.gaps.map(gap=>`<li>${esc(gap)}</li>`).join('')}</ul></section></aside></div><section class="india-related"><div class="india-section-heading"><h2>Keep widening the view</h2><a href="index.html#headlines">All India stories →</a></div><div>${indiaEdition.stories.filter(s=>s.id!==story.id).slice(0,3).map(s=>`<a href="${ui.path(s.id)}"><span>${esc(s.category)} · ${esc(s.date)}</span><h3>${esc(s.title)}</h3><span>${s.reports.length} reviewed ${s.reports.length===1?'report':'reports'} ↗</span></a>`).join('')}</div></section>`;
+  document.querySelector('.report-footer span').textContent=`Sources checked ${edition.checked}`;
+  const alignmentLabels={opposition:'Opposition / critical',mixed:'Mixed / contextual',ruling:'Official / ruling-side',unclear:'Insufficient evidence'};
+  const alignmentCounts=story.reports.reduce((counts,report)=>{counts[report.alignment]=(counts[report.alignment]||0)+1;return counts;},{});
+  const assessed=story.reports.filter(report=>report.alignment!=='unclear');
+  const notice=assessed.length
+    ? {title:'Article-level framing assessments available',body:`${assessed.length} of ${story.reports.length} reviewed reports contain enough evidence for a framing assessment. Open each report to inspect the reasoning.`}
+    : {title:'Not enough evidence to assess political framing',body:'The reviewed material does not establish a domestic party-political framing. This is not a verdict on factual accuracy.'};
+  const fullCount=story.reports.filter(report=>/full/i.test(report.access)).length;
+  const excerptCount=story.reports.length-fullCount;
+  const voices=[...new Set(story.reports.flatMap(report=>report.voice.split(/,| and /).map(value=>value.trim())).filter(Boolean))];
+  const reportById=id=>story.reports.find(report=>report.id===id);
+  const itemLink=item=>item.url||reportById(item.source)?.url;
+  const claims=story.claims.map(claim=>`<article class="content-claim"><span class="claim-state ${esc(claim.status.toLowerCase())}">${esc(claim.status)}</span><p>${esc(claim.text)}</p>${itemLink(claim)?`<a href="${esc(itemLink(claim))}" target="_blank" rel="noopener noreferrer">Read source ↗</a>`:''}</article>`).join('');
+  const perspectives=story.perspectives.map(item=>`<article class="perspective-card"><h3>${esc(item.title)}</h3><p>${esc(item.text)}</p>${itemLink(item)?`<a href="${esc(itemLink(item))}" target="_blank" rel="noopener noreferrer">Inspect source ↗</a>`:''}</article>`).join('');
+  const related=edition.stories.filter(item=>item.id!==story.id).slice(0,3).map(item=>`<a class="related-card" href="story.html?id=${encodeURIComponent(item.id)}"><span>${esc(item.category)} · ${esc(item.date)}</span><h3>${esc(item.title)}</h3><small>${item.reports.length} reviewed ${item.reports.length===1?'report':'reports'} →</small></a>`).join('');
+
+  root.innerHTML=`
+    <section class="report-titleblock"><h1>Source-by-source reporting</h1><p>What each report says — and what the evidence supports.</p></section>
+    <section class="report-summary">
+      <div class="report-summary-top">
+        <div class="report-story-id"><figure><img src="${esc(story.photo.url)}" alt="${esc(story.photo.alt)}"><figcaption>${esc(story.photo.credit)}</figcaption></figure><div><span class="story-category">${esc(story.category)} · ${esc(story.place)}</span><h2>${esc(story.title)}</h2><p>${story.reports.length} reports reviewed <span>•</span> Updated ${esc(story.date)}</p></div></div>
+        <div class="report-notice"><span>i</span><div><h3>${esc(notice.title)}</h3><p>${esc(notice.body)}</p></div></div>
+      </div>
+      <div class="report-facts"><strong>Coverage in this analysis</strong>${fullCount?`<span class="report-chip"><i>▤</i>${fullCount} full ${fullCount===1?'report':'reports'}</span>`:''}${excerptCount?`<span class="report-chip"><i>▤</i>${excerptCount} article ${excerptCount===1?'excerpt':'excerpts'}</span>`:''}<strong class="report-voice">Voices identified</strong><span class="report-chip"><i>♙</i>${esc(voices.slice(0,3).join(', ')||'Not specified')}</span></div>
+    </section>
+    <div class="reports-heading" id="reports"><h2>Reports reviewed (${story.reports.length})</h2><label class="reports-sort"><span>Sort by</span><select id="report-sort"><option value="date">Date (newest first)</option><option value="source">Source name</option><option value="framing">Framing assessment</option></select></label></div>
+    <section class="report-list" aria-live="polite" aria-label="Reviewed reports"></section>
+    <section class="story-content-grid">
+      <div class="story-content-main">
+        <article class="content-panel story-brief"><span class="content-kicker">The story in brief</span><h2>What is being reported</h2><p>${esc(story.summary)}</p><div class="takeaway-box"><strong>Keep in mind</strong><p>${esc(story.takeaway)}</p></div>${story.primary?`<a class="primary-document" href="${esc(story.primary.url)}" target="_blank" rel="noopener noreferrer">${esc(story.primary.label)} ↗</a>`:''}</article>
+        <article class="content-panel"><span class="content-kicker">Claims & context</span><h2>Separate the accounts</h2><div class="claims-list">${claims||'<p>No individual claims are listed for this story.</p>'}</div></article>
+        ${perspectives?`<article class="content-panel"><span class="content-kicker">Competing positions</span><h2>Different voices, one story</h2><div class="perspective-grid">${perspectives}</div></article>`:''}
+      </div>
+      <aside class="story-content-aside"><article class="questions-card"><span class="content-kicker">Questions still open</span><h2>What to look for next</h2><ul>${story.gaps.map(gap=>`<li>${esc(gap)}</li>`).join('')}</ul></article><article class="coverage-card"><span class="content-kicker">Assessment snapshot</span><h2>Framing in this sample</h2>${Object.entries(alignmentCounts).map(([key,count])=>`<div><span>${esc(alignmentLabels[key]||key)}</span><strong>${count}</strong></div>`).join('')}</article></aside>
+    </section>
+    <section class="related-reports"><div><span class="content-kicker">Keep widening the view</span><h2>Related coverage</h2></div><div class="related-grid">${related}</div></section>
+    <section class="report-method" id="methodology"><h2>How to read these assessments</h2><p>${esc(edition.meta.methodology)} Confidence describes the strength of the framing inference, while evidence and original-report links let you inspect the basis for each assessment.</p></section>`;
+
+  const list=document.querySelector('.report-list');
+  const search=document.querySelector('#report-search');
+  const sort=document.querySelector('#report-sort');
+  let query='';
+
   function reportCard(report){
-    const group=ui.groups[view.lens].find(g=>g.id===report[view.lens]);
-    return `<article class="india-report-card" id="${esc(report.id)}"><div class="india-report-card-top"><span class="india-source-mark">${esc(report.initials)}</span><div><h3>${esc(report.publisher)}</h3><p>${esc(report.date)} 2026${report.host?` · via ${esc(report.host)}`:''}${report.language?` · ${esc(report.language)}`:''}</p></div><span class="india-assessment-tag ${group.tone}">${esc(group.label)}</span></div><h4>${esc(report.title)}</h4><div class="india-report-meta"><span>${esc(report.scope)}</span><span>${esc(report.access)}</span>${report.sourceRole?`<span>${esc(report.sourceRole)}</span>`:''}</div><details class="india-evidence" open><summary>Why this assessment <span>${esc(report.confidence)} confidence</span></summary><div><span class="india-evidence-label">Evidence paraphrase</span><p>${esc(report.evidence)}</p><span class="india-evidence-label">${view.lens==='alignment'?'Framing inference':'Party framing assessment'}</span><p>${esc(report.why)}</p><div class="india-voice"><span>Voices heard</span>${esc(report.voice)}</div></div></details><a class="india-original-link" href="${esc(report.url)}" target="_blank" rel="noopener noreferrer">Open original report <span aria-hidden="true">↗</span></a></article>`;
+    const framing=alignmentLabels[report.alignment]||report.alignment;
+    const sourceRole=report.sourceRole||report.host||report.origin||report.publisher;
+    const key=`report-${report.id}`;
+    return `<article class="source-report" id="${esc(report.id)}">
+      <div class="source-report-head">
+        <span class="source-mark">${esc(report.initials)}</span>
+        <div class="source-meta"><h3>${esc(report.publisher)}</h3><p>${esc(report.date)} 2026${report.host?` · via ${esc(report.host)}`:''}</p></div>
+        <span class="access-badge">${esc(report.access)}</span>
+        <span class="source-role-badge">${esc(sourceRole)}</span>
+        <a class="original-report" href="${esc(report.url)}" target="_blank" rel="noopener noreferrer">Open original report ↗</a>
+      </div>
+      <div class="source-report-main">
+        <div class="source-report-copy"><h4>${esc(report.title)}</h4><p>${esc(report.evidence)}</p></div>
+        <div class="framing-summary"><span class="framing-icon" aria-hidden="true">⚖</span><div><div class="framing-summary-title"><strong>Framing assessment</strong><span class="framing-badge">${esc(framing)}</span></div><p>${esc(report.why)}</p></div></div>
+      </div>
+      <div class="report-tabs" role="tablist" aria-label="${esc(report.publisher)} report details" data-report-tabs="${esc(key)}">
+        <button type="button" role="tab" id="${esc(key)}-tab-evidence" aria-controls="${esc(key)}-panel-evidence" aria-selected="true" tabindex="0" data-report-tab="evidence">Key evidence</button>
+        <button type="button" role="tab" id="${esc(key)}-tab-why" aria-controls="${esc(key)}-panel-why" aria-selected="false" tabindex="-1" data-report-tab="why">Why this matters</button>
+        <button type="button" role="tab" id="${esc(key)}-tab-voices" aria-controls="${esc(key)}-panel-voices" aria-selected="false" tabindex="-1" data-report-tab="voices">Voices cited</button>
+        <button type="button" role="tab" id="${esc(key)}-tab-source" aria-controls="${esc(key)}-panel-source" aria-selected="false" tabindex="-1" data-report-tab="source">About this source</button>
+      </div>
+      <section class="report-tab-panel" id="${esc(key)}-panel-evidence" role="tabpanel" aria-labelledby="${esc(key)}-tab-evidence" data-report-panel="evidence"><div class="evidence-quote"><span aria-hidden="true">“</span><div><strong>Evidence summary</strong><p>${esc(report.evidence)}</p><small>Paraphrased from ${esc(report.publisher)}, ${esc(report.date)} 2026</small></div></div><div class="evidence-context"><h5>Why this supports the assessment</h5><p>${esc(report.why)}</p><span>${esc(report.confidence)} confidence · ${esc(report.scope)}</span></div></section>
+      <section class="report-tab-panel" id="${esc(key)}-panel-why" role="tabpanel" aria-labelledby="${esc(key)}-tab-why" data-report-panel="why" hidden><div class="tab-explanation"><h5>Why this matters</h5><p>${esc(report.why)}</p><p class="assessment-limits">This is an assessment of political framing in the reviewed material, not a verdict on factual accuracy.</p><span>${esc(report.confidence)} confidence · ${esc(report.scope)}</span></div></section>
+      <section class="report-tab-panel" id="${esc(key)}-panel-voices" role="tabpanel" aria-labelledby="${esc(key)}-tab-voices" data-report-panel="voices" hidden><div class="tab-explanation"><h5>Voices cited in this report</h5><p>${esc(report.voice||'No cited voices are specified in the reviewed material.')}</p></div></section>
+      <section class="report-tab-panel" id="${esc(key)}-panel-source" role="tabpanel" aria-labelledby="${esc(key)}-tab-source" data-report-panel="source" hidden><div class="tab-explanation"><h5>About this source</h5><p><strong>${esc(report.publisher)}</strong>${report.host?` · syndicated by ${esc(report.host)}`:''}</p><p>${esc(report.access)}. Source role: ${esc(sourceRole)}.</p><a href="${esc(report.url)}" target="_blank" rel="noopener noreferrer">Open the original report ↗</a></div></section>
+    </article>`;
   }
-  function render(){
-    const grouped=ui.counts(story,view.lens);
-    document.querySelector('#story-distribution').innerHTML=ui.bar(story,view.lens,true,view.filter)+`<div class="india-distribution-rows">${grouped.map(group=>`<button data-report-filter="${group.id}" aria-pressed="${view.filter===group.id}"><span><i class="${group.tone}"></i>${esc(group.label)}</span><strong>${group.count}<small> / ${story.reports.length}</small></strong></button>`).join('')}</div>`;
-    document.querySelector('#story-distribution-note').textContent=view.lens==='alignment'?'Framing signals in this reviewed sample. Party allegiance is not established. Zero means no supporting assessment in this sample.':'Coverage emphasis is distinct from party allegiance. Each reviewed report has one primary focus.';
-    document.querySelectorAll('[data-story-lens]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.storyLens===view.lens)));
-    document.querySelector('#report-filters').innerHTML=`<button data-report-filter="all" aria-pressed="${view.filter==='all'}">All reports <span>${story.reports.length}</span></button>${grouped.map(group=>`<button data-report-filter="${group.id}" aria-pressed="${view.filter===group.id}"><i class="${group.tone}"></i>${esc(group.short)} <span>${group.count}</span></button>`).join('')}`;
-    const reports=story.reports.filter(report=>view.filter==='all'||report[view.lens]===view.filter);
-    document.querySelector('#report-count').textContent=`${reports.length} of ${story.reports.length} reports`;
-    document.querySelector('#report-list').innerHTML=reports.length?reports.map(reportCard).join(''):`<div class="india-empty"><h3>No assessed reports in this group</h3><p>This sample contains no evidence supporting this category. Try another segment or view all reports.</p><button class="outline" data-report-filter="all">Show all reports</button></div>`;
+
+  function activateReportTab(tab,focus=false){
+    const card=tab.closest('.source-report');
+    if(!card)return;
+    card.querySelectorAll('[data-report-tab]').forEach(button=>{
+      const active=button===tab;
+      button.setAttribute('aria-selected',String(active));
+      button.tabIndex=active?0:-1;
+    });
+    card.querySelectorAll('[data-report-panel]').forEach(panel=>{panel.hidden=panel.dataset.reportPanel!==tab.dataset.reportTab;});
+    if(focus)tab.focus();
   }
-  root.addEventListener('click',event=>{
-    const button=event.target.closest('button');if(!button)return;
-    if(button.dataset.storyLens){view.lens=button.dataset.storyLens;view.filter='all';render();}
-    if(button.dataset.reportFilter){view.filter=button.dataset.reportFilter;render();if(button.closest('.india-coverage-panel'))document.querySelector('#reporting').scrollIntoView({behavior:'smooth'});}
-    if(button.id==='copy-story'){
-      const status=document.querySelector('#copy-status');
-      if(!navigator.clipboard){status.textContent='Copy the address from your browser.';return;}
-      navigator.clipboard.writeText(location.href).then(()=>{status.textContent='Link copied';},()=>{status.textContent='Copy the address from your browser.';});
-    }
+  list.addEventListener('click',event=>{
+    const tab=event.target.closest('[data-report-tab]');
+    if(tab)activateReportTab(tab);
   });
+  list.addEventListener('keydown',event=>{
+    const tab=event.target.closest('[data-report-tab]');
+    if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const tabs=[...tab.closest('[role="tablist"]').querySelectorAll('[role="tab"]')];
+    const index=tabs.indexOf(tab);
+    const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+    activateReportTab(tabs[next],true);
+  });
+
+  function render(){
+    let reports=story.reports.filter(report=>`${report.publisher} ${report.title} ${report.evidence} ${report.voice}`.toLowerCase().includes(query));
+    if(sort.value==='source')reports=[...reports].sort((a,b)=>a.publisher.localeCompare(b.publisher));
+    if(sort.value==='framing')reports=[...reports].sort((a,b)=>(alignmentLabels[a.alignment]||a.alignment).localeCompare(alignmentLabels[b.alignment]||b.alignment));
+    list.innerHTML=reports.length?reports.map(reportCard).join(''):'<div class="report-empty"><h3>No reports match your search</h3><p>Try a publisher, headline, voice, or evidence term.</p></div>';
+  }
+  search.addEventListener('input',event=>{query=event.target.value.trim().toLowerCase();render();});
+  sort.addEventListener('change',render);
   render();
-  if(location.hash) {
-    const report=story.reports.find(report=>'#'+report.id===location.hash);
-    if(report)document.getElementById(report.id)?.scrollIntoView({block:'center'});
+  if(location.hash){
+    const target=document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if(target)setTimeout(()=>target.scrollIntoView({block:'center'}),120);
   }
 })();
