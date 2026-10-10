@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List
 from services.serp_service import fetch_google_news
-from services.article_scraper import fetch_and_clean_article_content
+from services.article_scraper import fetch_and_clean_article_content, fetch_article_content_and_image
 from schemas import NewsArticle, ArticleBias, BiasCategory
 
 logger = logging.getLogger(__name__)
@@ -29,25 +29,30 @@ async def process_news_search(search_query: str, target_count: int = 5) -> List[
             break
 
         batch = candidates[i:i + batch_size]
-        tasks = [fetch_and_clean_article_content(item["url"]) for item in batch]
-        cleaned_results = await asyncio.gather(*tasks, return_exceptions=True)
+        tasks = [fetch_article_content_and_image(item["url"]) for item in batch]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for item, content in zip(batch, cleaned_results):
+        for item, result in zip(batch, results):
             if len(successfully_parsed) >= target_count:
                 break
 
-            if isinstance(content, Exception) or not content:
+            if isinstance(result, Exception) or not result:
                 logger.warning(f"Parsing failed for news item '{item.get('title')}' at {item.get('url')}. Fetching next candidate.")
-                continue  # Skip failed article and continue to next
+                continue
 
-            # Parsing succeeded!
-            # TODO: AI Biasing check will run here in the future
+            content, extracted_img = result
+            if not content:
+                logger.warning(f"Empty content for '{item.get('title')}' at {item.get('url')}. Fetching next candidate.")
+                continue
+
             bias_info = ArticleBias(
                 bias_score=None,
                 bias_category=BiasCategory.UNANALYZED,
-                personal_biasing_notes="TODO: AI political and personal biasing checks pending"
+                personal_biasing_notes="AI perspective assessment pending"
             )
 
+            # Prefer high-res OpenGraph article image, then SerpAPI thumbnail
+            lead_image = extracted_img or item.get("image_url")
 
             article = NewsArticle(
                 title=item.get("title", "No Title"),
@@ -57,7 +62,8 @@ async def process_news_search(search_query: str, target_count: int = 5) -> List[
                 date=item.get("date", ""),
                 cleaned_content=content,
                 content_length=len(content),
-                bias_info=bias_info
+                bias_info=bias_info,
+                image_url=lead_image
             )
             successfully_parsed.append(article)
 

@@ -46,12 +46,24 @@ async def fetch_google_news(query: str, max_candidates: int = 15) -> List[Dict[s
             else:
                 source_name = str(source_raw) or "Unknown Source"
 
+            thumbnail = (
+                item.get("thumbnail")
+                or item.get("thumbnail_url")
+                or item.get("image")
+                or item.get("photo")
+            )
+            if isinstance(thumbnail, dict):
+                thumbnail = thumbnail.get("src") or thumbnail.get("url")
+            elif isinstance(thumbnail, str) and not thumbnail.startswith(("http://", "https://")):
+                thumbnail = None
+
             article_info = {
                 "title": item.get("title", "No Title"),
                 "url": item.get("link", ""),
                 "source": source_name,
                 "snippet": item.get("snippet", ""),
-                "date": item.get("date", "")
+                "date": item.get("date", ""),
+                "image_url": thumbnail or None
             }
 
             if article_info["url"]:

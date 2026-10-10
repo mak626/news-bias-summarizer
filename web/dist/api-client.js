@@ -1,6 +1,6 @@
 /* API-only data client. No editorial/story fixtures live in the web bundle. */
 window.NewsApi = (() => {
-  const base = window.NEWS_API_BASE || `http://${location.hostname||'127.0.0.1'}:8001`;
+  const base = window.NEWS_API_BASE || (location.port === '8000' ? '' : `http://${location.hostname||'127.0.0.1'}:8000`);
   let editionPromise;
   let labPromise;
 

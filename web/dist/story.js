@@ -3,7 +3,7 @@
   const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   let edition;
   try{edition=await NewsApi.loadEdition();}
-  catch(error){root.innerHTML='<div class="report-empty"><h1>Coverage API unavailable</h1><p>Start the web API on port 8001, then reload this page.</p></div>';console.error(error);return;}
+  catch(error){root.innerHTML='<div class="report-empty"><h1>Coverage API unavailable</h1><p>Start the backend API on port 8000, then reload this page.</p></div>';console.error(error);return;}
   const id=new URLSearchParams(location.search).get('id');
   const story=edition.stories.find(item=>item.id===id);
   if(!story){root.innerHTML='<div class="report-empty"><h1>Story not found</h1><p><a href="index.html#headlines">Browse all reports</a></p></div>';return;}

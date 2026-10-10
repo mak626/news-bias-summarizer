@@ -5,7 +5,10 @@ from services.article_scraper import clean_html_content
 from services.news_processor import process_news_search
 from unittest.mock import patch
 from config import settings
+import database
 
+# Initialize test database
+database.initialize()
 client = TestClient(app)
 
 
@@ -15,12 +18,17 @@ def test_root_endpoint():
     data = response.json()
     assert data["status"] == "online"
     assert "docs" in data
+    assert "web_portal" in data
 
 
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["database"] == "duckdb"
+    assert data["stories"] > 0
+    assert data["lab_stories"] > 0
 
 
 def test_html_cleaning():
@@ -47,22 +55,18 @@ def test_html_cleaning():
 
 @pytest.mark.asyncio
 async def test_news_processor_failover_count():
-    """
-    Test that if parsing fails for some candidate news articles,
-    the pipeline keeps trying until total count reaches 5.
-    """
     mock_candidates = [
         {"title": f"Article {i}", "url": f"https://example.com/{i}", "source": f"Source {i}", "snippet": "", "date": ""}
         for i in range(10)
     ]
 
-    async def mock_fetch_content(url, timeout=8.0):
+    async def mock_fetch_content_and_img(url, timeout=8.0):
         if "0" in url or "2" in url:
-            return None  # Parsing fails
-        return f"This is valid cleaned content for {url} with sufficient length to pass the threshold requirement easily."
+            return None, None
+        return f"This is valid cleaned content for {url} with sufficient length to pass the threshold requirement easily.", f"https://example.com/img-{url[-1]}.jpg"
 
     with patch("services.news_processor.fetch_google_news", return_value=mock_candidates):
-        with patch("services.news_processor.fetch_and_clean_article_content", side_effect=mock_fetch_content):
+        with patch("services.news_processor.fetch_article_content_and_image", side_effect=mock_fetch_content_and_img):
             results = await process_news_search("test query", target_count=5)
             assert len(results) == 5
             urls = [a.url for a in results]
@@ -70,34 +74,147 @@ async def test_news_processor_failover_count():
             assert "https://example.com/2" not in urls
 
 
-def test_analyze_endpoint_live():
-    with patch.object(settings, "MOCK_MODE", False):
-        payload = {
-            "search_query": "renewable energy breakthroughs",
-            "num_articles": 5
-        }
-        response = client.post("/api/v1/analyze", json=payload)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert len(data["articles"]) == 5
-        assert "summary" in data
-        assert "bias_groups" in data["summary"]
-        assert "visualization_data" in data
-        assert "spectrum" in data["visualization_data"]
+def test_analyze_endpoint_cached_duckdb():
+    """Verify DuckDB cache hit serves redirect_url and cached flag."""
+    payload = {"query": "Jantar mantar protest"}
+    response = client.post("/api/v1/analyze", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["cached"] is True
+    assert "redirect_url" in data
+    assert data["redirect_url"] == "/story.html?id=cjp-dipke-detained"
+    assert data["id"] == "cjp-dipke-detained"
 
 
-def test_analyze_endpoint_mock_mode():
-    with patch.object(settings, "MOCK_MODE", True):
-        payload = {"search_query": "Palestine and Israel conflict"}
-        response = client.post("/api/v1/analyze", json=payload)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert len(data["articles"]) == 5
-        assert bool(data["articles"][0]["source"])
-        assert "bias_groups" in data["summary"]
-        assert len(data["summary"]["bias_groups"]) == 3
+def test_analyze_endpoint_live_and_duckdb_storage():
+    """Verify cache miss runs pipeline, saves into DuckDB, and subsequent call is a cache hit."""
+    from schemas import NewsArticle, SummaryResult, VisualizationData, TopicDomain, ArticleBias, BiasCategory
+    
+    mock_articles = [
+        NewsArticle(
+            title=f"Sample Test Article {i}",
+            source=f"Source {i}",
+            url=f"https://example.com/test-{i}",
+            snippet="snippet",
+            date="10/10/2026",
+            cleaned_content="Valid body text of the article for analysis verification.",
+            content_length=60,
+            bias_info=ArticleBias(
+                topic_domain=TopicDomain.GENERAL,
+                bias_category=BiasCategory.NEUTRAL,
+                bias_score=0.0
+            )
+        )
+        for i in range(5)
+    ]
+    mock_summary = SummaryResult(
+        original_summary="Original neutral summary for test analysis.",
+        bias_overview="Comparative analysis overview across perspectives.",
+        topic_domain=TopicDomain.GENERAL,
+        key_points=["Key point 1", "Key point 2"],
+        bias_groups=[]
+    )
+    mock_viz = VisualizationData(
+        topic_domain=TopicDomain.GENERAL,
+        spectrum=[],
+        average_bias=0.0
+    )
+
+    import uuid
+    test_id = uuid.uuid4().hex[:6]
+    test_query = f"unique test query {test_id}"
+    try:
+        with patch("api.routes.process_news_search", return_value=mock_articles):
+            with patch("api.routes.analyze_and_group_news_bias", return_value=(mock_summary, mock_articles, mock_viz)):
+                payload = {"query": test_query}
+                # 1. First call: Cache miss -> runs pipeline -> stores to DuckDB
+                resp1 = client.post("/api/v1/analyze", json=payload)
+                assert resp1.status_code == 200
+                data1 = resp1.json()
+                assert data1["status"] == "success"
+                assert data1["cached"] is False
+                assert "redirect_url" in data1
+                assert test_id in data1["id"]
+
+                # 2. Second call: DuckDB cache hit!
+                resp2 = client.post("/api/v1/analyze", json=payload)
+                assert resp2.status_code == 200
+                data2 = resp2.json()
+                assert data2["status"] == "success"
+                assert data2["cached"] is True
+                assert data2["id"] == data1["id"]
+                assert data2["redirect_url"] == data1["redirect_url"]
+    finally:
+        with database.connect() as db:
+            story_key = f"unique-test-query-{test_id}"
+            db.execute("DELETE FROM reports WHERE story_id = ?", [story_key])
+            db.execute("DELETE FROM claims WHERE story_id = ?", [story_key])
+            db.execute("DELETE FROM perspectives WHERE story_id = ?", [story_key])
+            db.execute("DELETE FROM stories WHERE id = ?", [story_key])
+            db.execute("DELETE FROM analyzed_queries WHERE query_key = ?", [test_query])
+
+
+def test_edition_endpoints():
+    """Test merged edition endpoints from web-apis."""
+    # 1. Edition metadata
+    resp_meta = client.get("/api/v1/edition")
+    assert resp_meta.status_code == 200
+    meta = resp_meta.json()
+    assert meta["story_count"] >= 9
+    assert "checked" in meta
+
+    # 2. Stories list
+    resp_stories = client.get("/api/v1/stories")
+    assert resp_stories.status_code == 200
+    stories_data = resp_stories.json()
+    assert stories_data["total"] >= 9
+    assert len(stories_data["items"]) >= 9
+
+    # 3. Single story detail
+    first_id = stories_data["items"][0]["id"]
+    resp_detail = client.get(f"/api/v1/stories/{first_id}")
+    assert resp_detail.status_code == 200
+    detail = resp_detail.json()
+    assert detail["id"] == first_id
+    assert len(detail["reports"]) > 0
+
+    # 4. Full edition content (used by web frontend)
+    resp_content = client.get("/api/v1/edition/content")
+    assert resp_content.status_code == 200
+    content = resp_content.json()
+    assert "edition" in content
+    assert len(content["stories"]) >= 9
+
+
+def test_lab_endpoints():
+    """Test merged Lens Lab endpoints from web-apis."""
+    # 1. Lab metadata
+    resp_lab = client.get("/api/v1/lab")
+    assert resp_lab.status_code == 200
+    lab_meta = resp_lab.json()
+    assert len(lab_meta["lenses"]) == 8
+
+    # 2. Lab stories
+    resp_stories = client.get("/api/v1/lab/stories")
+    assert resp_stories.status_code == 200
+    lab_stories = resp_stories.json()
+    assert lab_stories["total"] >= 4
+
+    # 3. Lab content
+    resp_content = client.get("/api/v1/lab/content")
+    assert resp_content.status_code == 200
+    content = resp_content.json()
+    assert "lab" in content
+    assert len(content["stories"]) >= 4
+
+
+def test_static_illustration_endpoint():
+    """Verify SVG illustration serving."""
+    response = client.get("/static/illustrations/protest.svg")
+    assert response.status_code == 200
+    assert "image/svg+xml" in response.headers["content-type"]
+    assert "<svg" in response.text
 
 
 @pytest.mark.asyncio
@@ -163,13 +280,11 @@ Key consensus points:
             categories = [a.bias_info.bias_category for a in updated_articles]
             assert BiasCategory.SUPPORTIVE in categories
             assert BiasCategory.CRITICAL in categories
-            # Non-political stories must not assign artificial political leaning
             for art in updated_articles:
                 assert art.bias_info.political_leaning is None
 
 
 def test_serpapi_balance_endpoint():
-    """Test GET /api/v1/serpapi/balance returns balance and quota metrics."""
     response = client.get("/api/v1/serpapi/balance")
     assert response.status_code == 200
     data = response.json()
@@ -179,7 +294,6 @@ def test_serpapi_balance_endpoint():
 
 
 def test_blocked_content_detection():
-    """Verify anti-bot 403, CloudFront, and Cloudflare error pages are rejected."""
     from services.article_scraper import is_blocked_or_error_content
 
     error_page = (
@@ -196,5 +310,11 @@ def test_blocked_content_detection():
     assert is_blocked_or_error_content(valid_news) is False
 
 
-
+def test_production_duckdb_file_isolation():
+    """Verify that test execution runs against an isolated DB and never touches production DB."""
+    assert database.is_test_environment() is True
+    active_db = database.get_db_path().resolve()
+    prod_db = database.DB_PATH.resolve()
+    assert active_db != prod_db, "Tests must never point to production DuckDB file!"
+    assert "duckdb_test_" in str(active_db) or "test_" in active_db.name
 

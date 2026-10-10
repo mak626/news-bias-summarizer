@@ -1,56 +1,107 @@
+from __future__ import annotations
+
 import json
 import logging
+import re
+import uuid
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, status
+
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from config import settings
-from schemas import AnalysisRequest, AnalysisResponse, SerpApiBalanceResponse
-from services import process_news_search, analyze_and_group_news_bias, fetch_serpapi_balance
+import database
+from schemas import (
+    AnalysisRequest,
+    AnalysisResponse,
+    SerpApiBalanceResponse,
+    StoryCard,
+    StoryDetail,
+    StoryList,
+    EditionResponse,
+    EditionContent,
+    LabStoryCard,
+    LabStoryDetail,
+    LabStoryList,
+    LabResponse,
+    LabContent,
+)
+from services import (
+    process_news_search,
+    analyze_and_group_news_bias,
+    fetch_serpapi_balance,
+)
+from services.web_content import (
+    story_card,
+    story_detail,
+    build_edition_response,
+    lab_card,
+    lab_detail,
+    build_lab_response,
+)
 
 logger = logging.getLogger(__name__)
 
-
-router = APIRouter(tags=["Analysis"])
-
-# Path to cached static mock response
-MOCK_DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "mock_response.json"
+router = APIRouter()
 
 
-@router.post("/analyze", response_model=AnalysisResponse, status_code=status.HTTP_200_OK)
-async def analyze_news_bias(request: AnalysisRequest):
+
+# -------------------------------------------------------------------------
+# Core Analysis Endpoint (with DuckDB Caching & Redirection)
+# -------------------------------------------------------------------------
+
+@router.post(
+    "/analyze",
+    response_model=AnalysisResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Analysis"],
+    summary="Analyze news bias or retrieve cached result"
+)
+async def analyze_news_bias(request_body: AnalysisRequest, request: Request):
     """
-    1. If MOCK_MODE is enabled, return cached static mock JSON immediately.
-    2. Otherwise, fetch top 5 news articles using SerpAPI and clean page content.
-    3. Use SerpAPI Google AI Mode API to summarize articles and group them by political bias (Left, Center, Right).
-    4. Cache the resulting response into data/mock_response.json for subsequent mock mode usage.
+    Search string / parsed article flow:
+    1. If the query/topic is found in DuckDB, return the cached result immediately
+       with the redirection URL to the web folder ('/story.html?id=...').
+    2. If not found in DuckDB, run the live pipeline (SerpAPI Google News search +
+       resilient scraper + SerpAPI Google AI Mode perspective analyzer), store the
+       resulting story and analysis in DuckDB, and return it with the redirection URL.
     """
-    query = request.search_query.strip() if request.search_query else ""
-    if not query and request.text:
-        query = request.text[:50].strip()
-
+    query = request_body.effective_query
     if not query:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid search_query must be provided."
+            detail="A non-empty search query or text must be provided."
         )
 
-    # 1. Return cached mock response when MOCK_MODE=true
-    if settings.MOCK_MODE:
-        logger.info(f"MOCK_MODE is enabled. Returning cached response from {MOCK_DATA_PATH}")
-        if MOCK_DATA_PATH.exists():
-            with open(MOCK_DATA_PATH, "r", encoding="utf-8") as f:
-                mock_data = json.load(f)
-            return AnalysisResponse(**mock_data)
-        else:
-            logger.warning(f"Mock file not found at {MOCK_DATA_PATH}. Falling back to live pipeline.")
+    # 1. DuckDB Cache Check
+    cached_data = database.get_analyzed_query(query)
+    if cached_data:
+        logger.info(f"DuckDB cache HIT for query: '{query}'")
+        cached_data["cached"] = True
+        story_id = cached_data.get("id") or cached_data.get("story_id") or "cjp-dipke-detained"
+        cached_data["id"] = story_id
+        cached_data["news_group_id"] = story_id
+        cached_data["redirect_url"] = f"/story.html?id={story_id}"
+        cached_data["web_url"] = f"http://localhost:8000/web/story.html?id={story_id}"
+        
+        # Optionally populate story detail if available
+        story_obj = database.india_story(story_id)
+        if story_obj:
+            cached_data["story"] = story_detail(request, story_obj)
 
-    # 2. Live pipeline: fetch news articles with parsing failover to guarantee target_count (5)
-    articles = await process_news_search(search_query=query, target_count=request.num_articles)
+        return AnalysisResponse(**cached_data)
 
-    # 3. AI Summarization & Bias Grouping via SerpAPI Google AI Mode
+    logger.info(f"DuckDB cache MISS for query: '{query}'. Running analysis pipeline...")
+
+    # 2. Live pipeline execution on cache miss
+    articles = await process_news_search(search_query=query, target_count=request_body.num_articles)
+
+    # AI Mode summarization and perspective analysis
     summary, analyzed_articles, viz_data = await analyze_and_group_news_bias(
         query=query,
         articles=articles
     )
+
+    slug = re.sub(r"[^\w]+", "-", query.lower()).strip("-")[:40]
+    story_id = slug or f"story-{uuid.uuid4().hex[:8]}"
 
     response = AnalysisResponse(
         status="success",
@@ -58,37 +109,149 @@ async def analyze_news_bias(request: AnalysisRequest):
         articles_fetched_count=len(analyzed_articles),
         articles=analyzed_articles,
         summary=summary,
-        visualization_data=viz_data
+        visualization_data=viz_data,
+        id=story_id,
+        news_group_id=story_id,
+        redirect_url=f"/story.html?id={story_id}",
+        web_url=f"http://localhost:8000/web/story.html?id={story_id}",
+        cached=False
     )
 
-    # 4. Cache response to mock_response.json for mock mode usage
-    _cache_mock_response(response)
+    # 3. Store in DuckDB for future instant cache hits & web views
+    try:
+        response_data = response.model_dump()
+        database.save_analyzed_query(query, response_data, story_id=response.id)
+        database.save_story_from_analysis(response_data, response.id, query)
+        logger.info(f"Saved analysis and story '{response.id}' for query '{query}' to DuckDB")
+    except Exception as e:
+        logger.warning(f"Could not persist analysis to DuckDB: {e}")
 
     return response
 
 
-def _cache_mock_response(response: AnalysisResponse, force: bool = False) -> None:
-    """Save response to data/mock_response.json only if file does not exist or force=True."""
-    try:
-        if MOCK_DATA_PATH.exists() and not force:
-            logger.debug(f"Mock response fixture already exists at {MOCK_DATA_PATH}. Preserving existing fixture.")
-            return
+# -------------------------------------------------------------------------
+# Edition Endpoints (Merged from web-apis)
+# -------------------------------------------------------------------------
 
-        MOCK_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(MOCK_DATA_PATH, "w", encoding="utf-8") as f:
-            json.dump(response.model_dump(), f, indent=2, ensure_ascii=False)
-        logger.info(f"Cached analysis response fixture to {MOCK_DATA_PATH}")
-    except Exception as e:
-        logger.warning(f"Failed to cache response to {MOCK_DATA_PATH}: {e}")
-
+@router.get(
+    "/edition",
+    response_model=EditionResponse,
+    tags=["Edition"],
+    summary="Get reviewed India edition metadata"
+)
+def get_edition():
+    return build_edition_response()
 
 
-@router.get("/serpapi/balance", response_model=SerpApiBalanceResponse, tags=["SerpAPI"])
+@router.get(
+    "/edition/content",
+    response_model=EditionContent,
+    tags=["Edition"],
+    summary="Load the complete India edition and stories"
+)
+def get_edition_content(request: Request):
+    return EditionContent(
+        edition=build_edition_response(),
+        stories=[story_detail(request, story) for story in database.get_stories()],
+    )
+
+
+@router.get(
+    "/stories",
+    response_model=StoryList,
+    tags=["Stories"],
+    summary="List India stories"
+)
+def list_stories(
+    request: Request,
+    category: str | None = Query(None, description="Exact category, such as Politics or Economy"),
+    topic: str | None = Query(None, description="Topic ID, such as narendra-modi"),
+    q: str | None = Query(None, description="Case-insensitive search across story and publisher text"),
+):
+    stories = database.get_stories(category=category, topic=topic, query=q)
+    items = [story_card(request, story) for story in stories]
+    return StoryList(items=items, total=len(items))
+
+
+@router.get(
+    "/stories/{story_id}",
+    response_model=StoryDetail,
+    tags=["Stories"],
+    summary="Get one India story comparison"
+)
+def get_story(story_id: str, request: Request):
+    story = database.india_story(story_id)
+    if not story:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Story '{story_id}' was not found")
+    return story_detail(request, story)
+
+
+# -------------------------------------------------------------------------
+# Lens Lab Endpoints (Merged from web-apis)
+# -------------------------------------------------------------------------
+
+@router.get(
+    "/lab",
+    response_model=LabResponse,
+    tags=["Lens Lab"],
+    summary="Get fictional lens lab metadata"
+)
+def get_lab():
+    return build_lab_response()
+
+
+@router.get(
+    "/lab/content",
+    response_model=LabContent,
+    tags=["Lens Lab"],
+    summary="Load the complete fictional lens lab and stories"
+)
+def get_lab_content():
+    return LabContent(
+        lab=build_lab_response(),
+        stories=[lab_detail(story) for story in database.lab_stories()],
+    )
+
+
+@router.get(
+    "/lab/stories",
+    response_model=LabStoryList,
+    tags=["Lens Lab"],
+    summary="List lens lab stories"
+)
+def list_lab_stories(
+    category: str | None = Query(None, description="Exact lab category"),
+    q: str | None = Query(None, description="Search lab titles, descriptions, and summaries"),
+):
+    stories = database.lab_stories(category=category, query=q)
+    items = [lab_card(story) for story in stories]
+    return LabStoryList(items=items, total=len(items))
+
+
+@router.get(
+    "/lab/stories/{story_id}",
+    response_model=LabStoryDetail,
+    tags=["Lens Lab"],
+    summary="Get one lens lab story"
+)
+def get_lab_story(story_id: str):
+    story = database.lab_story(story_id)
+    if not story:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Lab story '{story_id}' was not found")
+    return lab_detail(story)
+
+
+# -------------------------------------------------------------------------
+# SerpAPI Utility
+# -------------------------------------------------------------------------
+
+@router.get(
+    "/serpapi/balance",
+    response_model=SerpApiBalanceResponse,
+    tags=["SerpAPI"],
+    summary="Check SerpAPI account search quota"
+)
 async def check_serpapi_balance():
-    """
-    Check the current SerpAPI account balance, searches left, and usage statistics.
-    Free call; does not count against monthly search quota.
-    """
     try:
         balance = await fetch_serpapi_balance()
         return balance
@@ -98,9 +261,8 @@ async def check_serpapi_balance():
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Failed to retrieve SerpAPI balance: {e}")
+        logger.error(f"Error checking SerpAPI balance: {e}")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to communicate with SerpAPI Account API."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check SerpAPI balance: {str(e)}"
         )
-

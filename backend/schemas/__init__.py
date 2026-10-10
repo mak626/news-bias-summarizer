@@ -10,6 +10,31 @@ from .article import NewsArticle
 from .summary import SummaryResult, BiasGroup
 from .analysis import AnalysisRequest, AnalysisResponse, VisualizationData
 from .serpapi import SerpApiBalanceResponse
+from .edition import (
+    Alignment,
+    Focus,
+    ImageAsset,
+    CoverageGroup,
+    SourceBadge,
+    StoryCard,
+    Report,
+    Claim,
+    Perspective,
+    Link,
+    StoryDetail,
+    StoryList,
+    EditionResponse,
+    EditionContent
+)
+from .lab import (
+    LensDefinition,
+    LabArticle,
+    LabStoryCard,
+    LabStoryDetail,
+    LabStoryList,
+    LabResponse,
+    LabContent
+)
 
 __all__ = [
     "TopicDomain",
@@ -24,7 +49,26 @@ __all__ = [
     "AnalysisRequest",
     "AnalysisResponse",
     "VisualizationData",
-    "SerpApiBalanceResponse"
+    "SerpApiBalanceResponse",
+    "Alignment",
+    "Focus",
+    "ImageAsset",
+    "CoverageGroup",
+    "SourceBadge",
+    "StoryCard",
+    "Report",
+    "Claim",
+    "Perspective",
+    "Link",
+    "StoryDetail",
+    "StoryList",
+    "EditionResponse",
+    "EditionContent",
+    "LensDefinition",
+    "LabArticle",
+    "LabStoryCard",
+    "LabStoryDetail",
+    "LabStoryList",
+    "LabResponse",
+    "LabContent"
 ]
-
-

@@ -22,34 +22,62 @@ HEADERS = {
 }
 
 
-async def fetch_and_clean_article_content(url: str, timeout: float = 6.0) -> Optional[str]:
+def extract_meta_image(html_content: str) -> Optional[str]:
+    """Extract OpenGraph or Twitter lead image from HTML content."""
+    if not html_content:
+        return None
+    try:
+        soup = BeautifulSoup(html_content, "html.parser")
+        meta = (
+            soup.find("meta", property="og:image")
+            or soup.find("meta", attrs={"name": "og:image"})
+            or soup.find("meta", attrs={"name": "twitter:image"})
+            or soup.find("meta", property="twitter:image")
+            or soup.find("link", rel="image_src")
+        )
+        if meta:
+            val = meta.get("content") or meta.get("href")
+            if val and val.startswith(("http://", "https://")):
+                return val.strip()
+    except Exception:
+        pass
+    return None
+
+
+async def fetch_article_content_and_image(url: str, timeout: float = 6.0) -> tuple[Optional[str], Optional[str]]:
     """
-    Fetch the content of a news page URL and clean it up.
-    Uses browser impersonation (curl_cffi) to bypass Cloudflare/Akamai bot detection,
-    and falls back to reader proxy (r.jina.ai) if 403 or anti-bot blocks occur.
-    Returns cleaned text string if successful, or None if parsing fails.
+    Fetch both cleaned text and lead image URL from article page.
     """
     if not url or not url.startswith("http"):
         logger.warning(f"Invalid URL provided: {url}")
-        return None
+        return None, None
 
     # Step 1: Attempt direct fetch with browser TLS impersonation
     content = await _fetch_with_curl_cffi(url, timeout=timeout)
     if content:
+        img_url = extract_meta_image(content)
         cleaned = clean_html_content(content)
         if cleaned and len(cleaned) >= MIN_VALID_TEXT_LENGTH and not is_blocked_or_error_content(cleaned):
-            return cleaned
+            return cleaned, img_url
 
-    # Step 2: Fallback to reader proxy for heavily protected news sites (e.g. 403s on Cloudflare/Akamai)
+    # Step 2: Fallback to reader proxy
     logger.info(f"Direct fetch blocked or empty for {url}. Attempting reader fallback...")
     fallback_content = await _fetch_with_reader_fallback(url, timeout=timeout)
     if fallback_content:
+        m = re.search(r"!\[.*?\]\((https?://[^\s\)]+)\)", fallback_content)
+        img_url = m.group(1) if m else None
         cleaned = _clean_markdown_or_text(fallback_content)
         if cleaned and len(cleaned) >= MIN_VALID_TEXT_LENGTH and not is_blocked_or_error_content(cleaned):
-            return cleaned
+            return cleaned, img_url
 
     logger.warning(f"Unable to extract sufficient content for {url} (all methods failed, blocked by anti-bot, or content too short)")
-    return None
+    return None, None
+
+
+async def fetch_and_clean_article_content(url: str, timeout: float = 6.0) -> Optional[str]:
+    """Fetch and return cleaned text string (backward-compatible)."""
+    text, _ = await fetch_article_content_and_image(url, timeout=timeout)
+    return text
 
 
 

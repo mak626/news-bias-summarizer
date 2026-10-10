@@ -19,8 +19,6 @@ class Settings:
     # SerpAPI Key
     SERP_API_KEY: str = os.getenv("SERP_API_KEY", "")
 
-    # Mock Mode (returns static mock response when True)
-    MOCK_MODE: bool = os.getenv("MOCK_MODE", "false").lower() == "true"
 
 
 settings = Settings()
