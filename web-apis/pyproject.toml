@@ -1,0 +1,14 @@
+[project]
+name = "nonpartisan-web-apis"
+version = "1.0.0"
+description = "Swagger mock API for the nonpartisan.ink web prototype"
+requires-python = ">=3.12"
+dependencies = [
+  "duckdb>=1.4.0",
+  "fastapi>=0.143.0",
+  "pydantic>=2.14.0",
+  "uvicorn[standard]>=0.54.0",
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="45937bba-33ba-4dd3-8f24-00810ef2fec4" name="Changes" comment="Updated web with web-api's feeding the content">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/dist/news.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/news.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/dist/story.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/story.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/dist/story.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/dist/story.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "git-widget-placeholder": "feat-web-aby",
+    "nodejs_package_manager_path": "npm"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task id="LOCAL-00001" summary="Added New componets in listing &amp; details page">
+      <option name="closed" value="true" />
+      <created>1791574069920</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1791574069920</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Added backend mock for landing &amp; listing page">
+      <option name="closed" value="true" />
+      <created>1791616832361</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1791616832361</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Added DUCKDB content">
+      <option name="closed" value="true" />
+      <created>1791617863952</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1791617863952</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Updated web with web-api's feeding the content">
+      <option name="closed" value="true" />
+      <created>1791622474791</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1791622474791</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="[web] : Initial commit - Landing page" />
+    <MESSAGE value="Added New componets in listing &amp; details page" />
+    <MESSAGE value="Added backend mock for landing &amp; listing page" />
+    <MESSAGE value="Added DUCKDB content" />
+    <MESSAGE value="Updated web with web-api's feeding the content" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated web with web-api's feeding the content" />
+  </component>
+</project>

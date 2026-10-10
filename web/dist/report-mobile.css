@@ -1,0 +1,15 @@
+.report-detail-page{overflow-x:hidden}
+@media(max-width:650px){
+  .report-header,.report-detail-page main,.report-footer{width:100%;max-width:100%}
+  .report-detail-page main{padding-left:16px;padding-right:16px}
+  .report-titleblock,.report-summary,.report-summary-top,.report-story-id,.report-notice,.report-facts,.reports-heading,.report-list,.source-report{width:100%;max-width:100%}
+  .report-summary-top,.report-story-id,.report-notice,.source-report-head,.reports-heading,.report-columns{min-width:0}
+  .report-story-id{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px}
+  .report-story-id>div,.report-notice>div,.source-meta{min-width:0}
+  .report-titleblock p,.report-story-id h2,.report-story-id p,.report-notice h3,.report-notice p,.source-meta h3,.source-report>h4,.report-column p{overflow-wrap:anywhere;white-space:normal!important}
+  .reports-heading{flex-wrap:wrap;gap:12px}
+  .reports-sort select{max-width:190px}
+  .source-report-head{flex-wrap:wrap}
+  .original-report{margin-left:68px}
+  .report-chip{max-width:100%;white-space:normal}
+}

@@ -1,0 +1,61 @@
+body {
+  transition: opacity .16s ease, transform .16s ease;
+  animation: page-in .24s ease both;
+}
+
+body.page-leaving {
+  opacity: .35;
+  transform: translateY(3px);
+  pointer-events: none;
+}
+
+.page-transition-status {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg, #fbfbfd) 82%, transparent);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .16s ease, visibility .16s ease;
+}
+
+.page-transition-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  border: 1px solid var(--line, #d9dce7);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--text, #17213c);
+  font: 600 14px/1 var(--font-news-sans, sans-serif);
+  box-shadow: 0 10px 35px rgb(16 24 55 / 10%);
+}
+
+.page-transition-status span::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: transition-spin .65s linear infinite;
+}
+
+body.page-leaving + .page-transition-status,
+.page-transition-status.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+@keyframes page-in { from { opacity: 0; transform: translateY(5px); } }
+@keyframes transition-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  body, .page-transition-status { transition: none !important; }
+  body { animation: none !important; }
+  .page-transition-status span::before { animation: none; border-right-color: currentColor; }
+}
