@@ -2,6 +2,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from .article import NewsArticle
 from .summary import SummaryResult
+from .enums import ResponseStatus
 
 
 class VisualizationData(BaseModel):
@@ -18,7 +19,7 @@ class AnalysisRequest(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    status: str = "success"
+    status: ResponseStatus = Field(ResponseStatus.SUCCESS, description="Status of the response")
     query_used: str
     articles_fetched_count: int
     articles: List[NewsArticle]

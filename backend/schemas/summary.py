@@ -1,9 +1,10 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from .enums import BiasGroupCategory
 
 
 class BiasGroup(BaseModel):
-    category: str = Field(..., description="Political bias category (Left, Center, Right, etc.)")
+    category: BiasGroupCategory = Field(..., description="Political bias category (Left, Center, Right)")
     outlets: List[str] = Field(default_factory=list, description="Names of news outlets in this group")
     framing_overview: Optional[str] = Field(None, description="How outlets in this group frame the story")
     article_titles: List[str] = Field(default_factory=list, description="Titles belonging to this group")

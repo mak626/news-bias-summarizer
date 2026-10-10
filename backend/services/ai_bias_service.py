@@ -4,6 +4,7 @@ from typing import List, Tuple, Dict, Any, Optional
 import httpx
 from config import settings
 from schemas import NewsArticle, SummaryResult, BiasGroup, VisualizationData, ArticleBias
+from schemas.enums import BiasCategory, BiasGroupCategory, PoliticalLeaning
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,7 @@ def _parse_ai_mode_prediction(
     articles: List[NewsArticle],
     markdown: str
 ) -> Tuple[SummaryResult, List[NewsArticle], VisualizationData]:
-    """
-    Parses dynamic AI predictions from Google AI Mode output into Pydantic BaseModels.
-    """
+    """Parses dynamic AI predictions from Google AI Mode output into Pydantic BaseModels."""
     # 1. Parse individual article predictions (Article 1..N)
     article_predictions = _extract_article_predictions(markdown, len(articles))
 
@@ -101,27 +100,31 @@ def _parse_ai_mode_prediction(
     updated_articles: List[NewsArticle] = []
     scores: List[float] = []
     category_counts = {"Left": 0, "Center": 0, "Right": 0}
-    bias_buckets: Dict[str, List[NewsArticle]] = {"Left": [], "Center": [], "Right": []}
+    bias_buckets: Dict[BiasGroupCategory, List[NewsArticle]] = {
+        BiasGroupCategory.LEFT: [],
+        BiasGroupCategory.CENTER: [],
+        BiasGroupCategory.RIGHT: []
+    }
 
     for idx, art in enumerate(articles, 1):
         pred = article_predictions.get(idx)
         if pred:
-            cat = pred["category"]
+            raw_cat = pred["category"]
             score = pred["score"]
             framing = pred["framing"]
         else:
-            # Fallback to text inference if article block was not uniquely numbered
-            cat, score, framing = _infer_bias_from_ai_text(art, markdown)
+            raw_cat, score, framing = _infer_bias_from_ai_text(art, markdown)
 
-        norm_cat = _normalize_category(cat)
-        category_counts[norm_cat] = category_counts.get(norm_cat, 0) + 1
-        bias_buckets[norm_cat].append(art)
+        cat_enum = _to_bias_category(raw_cat)
+        group_enum = _to_group_category(cat_enum)
+        category_counts[group_enum.value] = category_counts.get(group_enum.value, 0) + 1
+        bias_buckets[group_enum].append(art)
         scores.append(score)
 
         art.bias_info = ArticleBias(
             bias_score=score,
-            bias_category=cat,
-            political_leaning=f"{cat} perspective",
+            bias_category=cat_enum,
+            political_leaning=_to_political_leaning(cat_enum),
             personal_biasing_notes=framing
         )
         updated_articles.append(art)
@@ -129,22 +132,22 @@ def _parse_ai_mode_prediction(
     # 4. Construct BiasGroups based purely on AI grouping
     bias_groups = [
         BiasGroup(
-            category="Left",
-            outlets=list({a.source for a in bias_buckets["Left"]}),
+            category=BiasGroupCategory.LEFT,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.LEFT]}),
             framing_overview=group_framings.get("Left", "Focuses on humanitarian dimensions, civil liberties, and systemic critiques."),
-            article_titles=[a.title for a in bias_buckets["Left"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.LEFT]]
         ),
         BiasGroup(
-            category="Center",
-            outlets=list({a.source for a in bias_buckets["Center"]}),
+            category=BiasGroupCategory.CENTER,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.CENTER]}),
             framing_overview=group_framings.get("Center", "Neutral factual reporting, institutional attribution, and diplomatic balance."),
-            article_titles=[a.title for a in bias_buckets["Center"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.CENTER]]
         ),
         BiasGroup(
-            category="Right",
-            outlets=list({a.source for a in bias_buckets["Right"]}),
+            category=BiasGroupCategory.RIGHT,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.RIGHT]}),
             framing_overview=group_framings.get("Right", "Focuses on security imperatives, economic interests, and national authority."),
-            article_titles=[a.title for a in bias_buckets["Right"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.RIGHT]]
         )
     ]
 
@@ -193,7 +196,6 @@ def _extract_article_predictions(markdown: str, count: int) -> Dict[int, Dict[st
             score_val = float(score_match.group(1).strip()) if score_match else _category_to_default_score(cat)
             framing = framing_match.group(1).strip() if framing_match else "AI predicted editorial stance based on article framing."
 
-            # Clean markdown formatting artifacts
             cat = re.sub(r'[*_`]', '', cat).strip()
             framing = re.sub(r'\[\d+\]', '', framing).strip()
 
@@ -267,7 +269,6 @@ def _infer_bias_from_ai_text(article: NewsArticle, ai_text: str) -> Tuple[str, f
     source_lower = article.source.lower()
     title_words = [w.lower() for w in article.title.split() if len(w) > 4]
 
-    # Search for source in Left / Center / Right sections
     for section_name in ("Left", "Center", "Right"):
         pattern = rf'###\s*{section_name}[^\n]*\n([\s\S]*?)(?=###|$)'
         match = re.search(pattern, ai_text, re.IGNORECASE)
@@ -276,6 +277,42 @@ def _infer_bias_from_ai_text(article: NewsArticle, ai_text: str) -> Tuple[str, f
             return section_name, score, f"Categorized under {section_name} perspective by AI analysis."
 
     return "Center", 0.0, "Balanced or non-partisan framing inferred from article content."
+
+
+def _to_bias_category(cat_str: str) -> BiasCategory:
+    """Safely convert any raw string into a BiasCategory enum."""
+    cl = cat_str.lower()
+    if "center-left" in cl or "left-center" in cl:
+        return BiasCategory.CENTER_LEFT
+    elif "left" in cl:
+        return BiasCategory.LEFT
+    elif "center-right" in cl or "right-center" in cl:
+        return BiasCategory.CENTER_RIGHT
+    elif "right" in cl:
+        return BiasCategory.RIGHT
+    return BiasCategory.CENTER
+
+
+def _to_political_leaning(cat: BiasCategory) -> PoliticalLeaning:
+    """Map BiasCategory to PoliticalLeaning enum."""
+    if cat == BiasCategory.LEFT:
+        return PoliticalLeaning.LEFT_LEANING
+    elif cat == BiasCategory.CENTER_LEFT:
+        return PoliticalLeaning.CENTER_LEFT_LEANING
+    elif cat == BiasCategory.CENTER_RIGHT:
+        return PoliticalLeaning.CENTER_RIGHT_LEANING
+    elif cat == BiasCategory.RIGHT:
+        return PoliticalLeaning.RIGHT_LEANING
+    return PoliticalLeaning.MODERATE
+
+
+def _to_group_category(cat: BiasCategory) -> BiasGroupCategory:
+    """Map fine-grained BiasCategory to broad BiasGroupCategory."""
+    if cat in (BiasCategory.LEFT, BiasCategory.CENTER_LEFT):
+        return BiasGroupCategory.LEFT
+    elif cat in (BiasCategory.RIGHT, BiasCategory.CENTER_RIGHT):
+        return BiasGroupCategory.RIGHT
+    return BiasGroupCategory.CENTER
 
 
 def _category_to_default_score(cat: str) -> float:
@@ -292,30 +329,20 @@ def _category_to_default_score(cat: str) -> float:
     return 0.0
 
 
-def _normalize_category(cat: str) -> str:
-    """Normalize detailed category into Left, Center, or Right bucket."""
-    cl = cat.lower()
-    if "left" in cl:
-        return "Left"
-    elif "right" in cl:
-        return "Right"
-    return "Center"
-
-
 def _dynamic_text_heuristic(
     query: str,
     articles: List[NewsArticle]
 ) -> Tuple[SummaryResult, List[NewsArticle], VisualizationData]:
-    """
-    Dynamic fallback based on article text and titles when AI mode is unavailable.
-    Does NOT use any hardcoded outlet dictionary.
-    """
+    """Dynamic fallback based on article text and titles when AI mode is unavailable."""
     scores = []
     category_counts = {"Left": 0, "Center": 0, "Right": 0}
-    bias_buckets: Dict[str, List[NewsArticle]] = {"Left": [], "Center": [], "Right": []}
+    bias_buckets: Dict[BiasGroupCategory, List[NewsArticle]] = {
+        BiasGroupCategory.LEFT: [],
+        BiasGroupCategory.CENTER: [],
+        BiasGroupCategory.RIGHT: []
+    }
     updated_articles: List[NewsArticle] = []
 
-    # Dynamic lexical cues evaluated directly from article text
     left_markers = {"humanitarian", "civilian", "human rights", "activist", "displaced", "ethnic cleansing", "blockade", "sanctions", "palestinian"}
     right_markers = {"security", "defense", "military", "counter-terrorism", "threat", "deterrence", "hamas", "iran", "allies", "strategic"}
 
@@ -326,48 +353,49 @@ def _dynamic_text_heuristic(
 
         diff = right_hits - left_hits
         if diff >= 2:
-            cat = "Right"
+            cat_enum = BiasCategory.RIGHT
             score = 0.5
             framing = "Framing highlights strategic security, defense imperatives, and state alliances."
         elif diff <= -2:
-            cat = "Left"
+            cat_enum = BiasCategory.LEFT
             score = -0.5
             framing = "Framing centers humanitarian impact, civilian tolls, and human rights scrutiny."
         else:
-            cat = "Center"
+            cat_enum = BiasCategory.CENTER
             score = 0.0
             framing = "Factual reporting balancing multiple perspectives and institutional statements."
 
-        category_counts[cat] += 1
-        bias_buckets[cat].append(art)
+        group_enum = _to_group_category(cat_enum)
+        category_counts[group_enum.value] += 1
+        bias_buckets[group_enum].append(art)
         scores.append(score)
 
         art.bias_info = ArticleBias(
             bias_score=score,
-            bias_category=cat,
-            political_leaning=f"{cat} perspective",
+            bias_category=cat_enum,
+            political_leaning=_to_political_leaning(cat_enum),
             personal_biasing_notes=framing
         )
         updated_articles.append(art)
 
     bias_groups = [
         BiasGroup(
-            category="Left",
-            outlets=list({a.source for a in bias_buckets["Left"]}),
+            category=BiasGroupCategory.LEFT,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.LEFT]}),
             framing_overview="Emphasizes civilian impact, humanitarian conditions, and human rights.",
-            article_titles=[a.title for a in bias_buckets["Left"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.LEFT]]
         ),
         BiasGroup(
-            category="Center",
-            outlets=list({a.source for a in bias_buckets["Center"]}),
+            category=BiasGroupCategory.CENTER,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.CENTER]}),
             framing_overview="Focuses on verified wire facts, diplomatic developments, and multi-sided statements.",
-            article_titles=[a.title for a in bias_buckets["Center"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.CENTER]]
         ),
         BiasGroup(
-            category="Right",
-            outlets=list({a.source for a in bias_buckets["Right"]}),
+            category=BiasGroupCategory.RIGHT,
+            outlets=list({a.source for a in bias_buckets[BiasGroupCategory.RIGHT]}),
             framing_overview="Emphasizes national defense, strategic interests, and security threats.",
-            article_titles=[a.title for a in bias_buckets["Right"]]
+            article_titles=[a.title for a in bias_buckets[BiasGroupCategory.RIGHT]]
         )
     ]
 
