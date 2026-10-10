@@ -2,9 +2,11 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import "dotenv/config";
+import { getCachedSummary, setCachedSummary } from "./redis.js";
 const app = new Hono();
 app.use("*", cors());
 const openrouter = createOpenRouter({
@@ -46,23 +48,34 @@ app.post("/", async (c) => {
         return c.json({ error: "Server misconfigured: OPENROUTER_API_KEY is not set." }, 500);
     }
     try {
-        const { text: summary } = await generateText({
-            model: openrouter.chat(MODEL),
-            system: "You compress a news article into a single short search query. " +
-                "Describe the exact incident (who, what, where, when) in 1 line, under 20 words, " +
-                "using concrete nouns and plain keywords someone would type into Google Search to find related articles. " +
-                "No quotes, no punctuation tricks, no explanation, no extra text. Output only the query.",
-            prompt: text.trim(),
-            // Free-router models may spend tokens on hidden reasoning before
-            // answering; leave enough budget so the actual summary is emitted.
-            maxOutputTokens: 512,
-            temperature: 0.2,
-        });
-        if (summary.trim().length === 0) {
-            console.error("Summarization returned empty text.");
-            return c.json({ error: "Model returned an empty summary, please retry." }, 502);
+        const input = text.trim();
+        const cacheKey = `summary:${createHash("sha256").update(input).digest("hex")}`;
+        let summary = await getCachedSummary(cacheKey);
+        if (summary) {
+            console.log("Summary cache HIT");
         }
-        const id = await submitSummary(summary.trim());
+        else {
+            console.log("Summary cache MISS");
+            const result = await generateText({
+                model: openrouter.chat(MODEL),
+                system: "You compress a news article into a single short search query. " +
+                    "Describe the exact incident (who, what, where, when) in 1 line, under 20 words, " +
+                    "using concrete nouns and plain keywords someone would type into Google Search to find related articles. " +
+                    "No quotes, no punctuation tricks, no explanation, no extra text. Output only the query.",
+                prompt: input,
+                // Free-router models may spend tokens on hidden reasoning before
+                // answering; leave enough budget so the actual summary is emitted.
+                maxOutputTokens: 512,
+                temperature: 0.2,
+            });
+            summary = result.text.trim();
+            if (summary.length === 0) {
+                console.error("Summarization returned empty text.");
+                return c.json({ error: "Model returned an empty summary, please retry." }, 502);
+            }
+            await setCachedSummary(cacheKey, summary);
+        }
+        const id = await submitSummary(summary);
         return c.json({ id });
     }
     catch (err) {
