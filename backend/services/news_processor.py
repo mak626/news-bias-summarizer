@@ -3,7 +3,7 @@ import logging
 from typing import List
 from services.serp_service import fetch_google_news
 from services.article_scraper import fetch_and_clean_article_content
-from schemas import NewsArticle, ArticleBias
+from schemas import NewsArticle, ArticleBias, BiasCategory
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,10 @@ async def process_news_search(search_query: str, target_count: int = 5) -> List[
             # TODO: AI Biasing check will run here in the future
             bias_info = ArticleBias(
                 bias_score=None,
-                bias_category="Unanalyzed",
+                bias_category=BiasCategory.UNANALYZED,
                 personal_biasing_notes="TODO: AI political and personal biasing checks pending"
             )
+
 
             article = NewsArticle(
                 title=item.get("title", "No Title"),

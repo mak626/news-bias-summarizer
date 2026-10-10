@@ -98,3 +98,84 @@ def test_analyze_endpoint_mock_mode():
         assert bool(data["articles"][0]["source"])
         assert "bias_groups" in data["summary"]
         assert len(data["summary"]["bias_groups"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_domain_aware_tech_analysis():
+    from services.ai_bias_service import analyze_and_group_news_bias
+    from schemas import NewsArticle, TopicDomain, BiasCategory
+
+    mock_tech_articles = [
+        NewsArticle(
+            title="Starlink gains rapid adoption in rural regions with high speed satellite connectivity",
+            source="Tech Wire",
+            url="https://example.com/starlink-growth",
+            snippet="Massive breakthrough in rural broadband connectivity and consumer benefits.",
+            date="10/10/2026",
+            cleaned_content="A massive breakthrough in rural broadband connectivity brings huge advantages and opportunities.",
+            content_length=150
+        ),
+        NewsArticle(
+            title="Domestic telecom operators voice concern over spectrum allocation and regulatory hurdles",
+            source="Financial Daily",
+            url="https://example.com/telecom-dispute",
+            snippet="Antitrust pushback, security concern, and regulatory delays raised by local telcos.",
+            date="10/10/2026",
+            cleaned_content="Antitrust pushback, national security concerns, and monopoly risks prompt regulatory challenges.",
+            content_length=160
+        )
+    ]
+
+    mock_ai_markdown = """
+Domain: Technology & Business
+
+Article 1
+Category: Supportive / Optimistic
+Score: 0.6
+Framing: Highlights consumer connectivity advantages and technological progress.
+
+Article 2
+Category: Critical / Skeptical
+Score: -0.5
+Framing: Emphasizes domestic market competition concerns and regulatory hurdles.
+
+### Supportive
+Highlights high speed satellite broadband expansion.
+
+### Critical
+Focuses on local telecom antitrust pushback and spectrum allocation disputes.
+
+### Summary
+Key consensus points:
+- Satellite internet deployment advances rapidly across remote regions
+- Regulatory debates over spectrum allocation remain unresolved
+"""
+
+    with patch("services.ai_bias_service._detect_topic_domain", return_value=TopicDomain.TECH_BUSINESS):
+        with patch("services.ai_bias_service._query_serpapi_ai_mode", return_value=mock_ai_markdown):
+            summary_result, updated_articles, viz_data = await analyze_and_group_news_bias(
+                query="Starlink Elon Musk India",
+                articles=mock_tech_articles
+            )
+
+            assert summary_result.topic_domain == TopicDomain.TECH_BUSINESS
+            assert viz_data.topic_domain == TopicDomain.TECH_BUSINESS
+            categories = [a.bias_info.bias_category for a in updated_articles]
+            assert BiasCategory.SUPPORTIVE in categories
+            assert BiasCategory.CRITICAL in categories
+            # Non-political stories must not assign artificial political leaning
+            for art in updated_articles:
+                assert art.bias_info.political_leaning is None
+
+
+def test_serpapi_balance_endpoint():
+    """Test GET /api/v1/serpapi/balance returns balance and quota metrics."""
+    response = client.get("/api/v1/serpapi/balance")
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_searches_left" in data
+    assert "plan_name" in data
+    assert isinstance(data["total_searches_left"], int)
+
+
+

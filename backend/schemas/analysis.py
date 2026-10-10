@@ -2,13 +2,15 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from .article import NewsArticle
 from .summary import SummaryResult
-from .enums import ResponseStatus
+from .enums import ResponseStatus, TopicDomain
 
 
 class VisualizationData(BaseModel):
-    spectrum: List[Dict[str, Any]] = Field(default_factory=list, description="Distribution across Left, Center, Right")
-    average_bias: float = Field(0.0, description="Average bias score from -1.0 to 1.0")
-    groups_count: Dict[str, int] = Field(default_factory=dict, description="Count of articles per political spectrum bucket")
+    topic_domain: TopicDomain = Field(TopicDomain.POLITICAL, description="Topic domain of the spectrum")
+    spectrum: List[Dict[str, Any]] = Field(default_factory=list, description="Distribution across spectrum buckets")
+    average_bias: float = Field(0.0, description="Average bias or stance score from -1.0 to 1.0")
+    groups_count: Dict[str, int] = Field(default_factory=dict, description="Count of articles per spectrum bucket")
+
 
 
 class AnalysisRequest(BaseModel):

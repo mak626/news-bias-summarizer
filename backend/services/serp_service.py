@@ -2,10 +2,11 @@ import logging
 from typing import List, Dict, Any
 import httpx
 from config import settings
+from constants import SERPAPI_SEARCH_URL, SERPAPI_ACCOUNT_URL
+from schemas import SerpApiBalanceResponse
 
 logger = logging.getLogger(__name__)
 
-SERPAPI_URL = "https://serpapi.com/search.json"
 
 
 async def fetch_google_news(query: str, max_candidates: int = 15) -> List[Dict[str, Any]]:
@@ -27,7 +28,8 @@ async def fetch_google_news(query: str, max_candidates: int = 15) -> List[Dict[s
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(SERPAPI_URL, params=params)
+            response = await client.get(SERPAPI_SEARCH_URL, params=params)
+
             response.raise_for_status()
             data = response.json()
 
@@ -92,3 +94,41 @@ def _get_mock_serp_results(query: str, max_candidates: int = 15) -> List[Dict[st
             "date": f"{i + 1} hour(s) ago"
         })
     return results
+
+
+async def fetch_serpapi_balance() -> SerpApiBalanceResponse:
+    """
+    Queries SerpAPI Account API (https://serpapi.com/account.json).
+    Free of charge, does not consume monthly search credits.
+    """
+    if not settings.SERP_API_KEY:
+        raise ValueError("SERP_API_KEY is not configured in the environment.")
+
+    params = {"api_key": settings.SERP_API_KEY}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(SERPAPI_ACCOUNT_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            if "error" in data:
+                raise ValueError(f"SerpAPI returned error: {data['error']}")
+
+            return SerpApiBalanceResponse(
+                account_email=data.get("account_email"),
+                plan_name=data.get("plan_name"),
+                total_searches_left=data.get("total_searches_left"),
+                plan_searches_left=data.get("plan_searches_left"),
+                searches_per_month=data.get("searches_per_month"),
+                this_month_usage=data.get("this_month_usage"),
+                this_hour_searches=data.get("this_hour_searches"),
+                account_rate_limit_per_hour=data.get("account_rate_limit_per_hour"),
+                plan_renewal_date=data.get("plan_renewal_date")
+            )
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error fetching SerpAPI account balance: {e.response.status_code}")
+        raise ValueError(f"SerpAPI account check failed with HTTP {e.response.status_code}")
+    except Exception as e:
+        logger.error(f"Error fetching SerpAPI account balance: {e}")
+        raise
+

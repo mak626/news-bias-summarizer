@@ -3,10 +3,11 @@ import logging
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 from config import settings
-from schemas import AnalysisRequest, AnalysisResponse
-from services import process_news_search, analyze_and_group_news_bias
+from schemas import AnalysisRequest, AnalysisResponse, SerpApiBalanceResponse
+from services import process_news_search, analyze_and_group_news_bias, fetch_serpapi_balance
 
 logger = logging.getLogger(__name__)
+
 
 router = APIRouter(tags=["Analysis"])
 
@@ -75,3 +76,26 @@ def _cache_mock_response(response: AnalysisResponse) -> None:
         logger.info(f"Cached latest live analysis response to {MOCK_DATA_PATH}")
     except Exception as e:
         logger.warning(f"Failed to cache response to {MOCK_DATA_PATH}: {e}")
+
+
+@router.get("/serpapi/balance", response_model=SerpApiBalanceResponse, tags=["SerpAPI"])
+async def check_serpapi_balance():
+    """
+    Check the current SerpAPI account balance, searches left, and usage statistics.
+    Free call; does not count against monthly search quota.
+    """
+    try:
+        balance = await fetch_serpapi_balance()
+        return balance
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to retrieve SerpAPI balance: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to communicate with SerpAPI Account API."
+        )
+

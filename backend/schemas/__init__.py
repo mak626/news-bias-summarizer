@@ -1,4 +1,5 @@
 from .enums import (
+    TopicDomain,
     BiasCategory,
     BiasGroupCategory,
     PoliticalLeaning,
@@ -8,8 +9,10 @@ from .bias import ArticleBias
 from .article import NewsArticle
 from .summary import SummaryResult, BiasGroup
 from .analysis import AnalysisRequest, AnalysisResponse, VisualizationData
+from .serpapi import SerpApiBalanceResponse
 
 __all__ = [
+    "TopicDomain",
     "BiasCategory",
     "BiasGroupCategory",
     "PoliticalLeaning",
@@ -20,5 +23,8 @@ __all__ = [
     "BiasGroup",
     "AnalysisRequest",
     "AnalysisResponse",
-    "VisualizationData"
+    "VisualizationData",
+    "SerpApiBalanceResponse"
 ]
+
+
