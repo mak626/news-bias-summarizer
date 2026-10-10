@@ -318,3 +318,18 @@ def test_production_duckdb_file_isolation():
     assert active_db != prod_db, "Tests must never point to production DuckDB file!"
     assert "duckdb_test_" in str(active_db) or "test_" in active_db.name
 
+
+def test_extension_analyze_response_fields():
+    """Verify that /analyze returns the exact fields needed by the extension."""
+    payload = {"query": "Jantar mantar protest"}
+    response = client.post("/api/v1/analyze", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "cjp-dipke-detained"
+    assert data["news_group_id"] == "cjp-dipke-detained"
+    assert data["redirect_url"] == "/story.html?id=cjp-dipke-detained"
+    assert data["web_url"] == "http://localhost:8000/web/story.html?id=cjp-dipke-detained"
+    assert data["cached"] is True
+
+
+

@@ -28,6 +28,7 @@ from services import (
     process_news_search,
     analyze_and_group_news_bias,
     fetch_serpapi_balance,
+    compress_text_to_search_query,
 )
 from services.web_content import (
     story_card,
@@ -64,69 +65,76 @@ async def analyze_news_bias(request_body: AnalysisRequest, request: Request):
        resilient scraper + SerpAPI Google AI Mode perspective analyzer), store the
        resulting story and analysis in DuckDB, and return it with the redirection URL.
     """
-    query = request_body.effective_query
-    if not query:
+    raw_query = request_body.effective_query
+    if not raw_query:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A non-empty search query or text must be provided."
         )
 
-    # 1. DuckDB Cache Check
-    cached_data = database.get_analyzed_query(query)
+    # Convert/compress raw text (e.g. from article extraction) into clean search query via SerpAPI AI Mode
+    search_query = await compress_text_to_search_query(raw_query) or raw_query
+
+    # 1. DuckDB Cache Check (checking both search_query and raw_query)
+    cached_data = database.get_analyzed_query(search_query) or database.get_analyzed_query(raw_query)
     if cached_data:
-        logger.info(f"DuckDB cache HIT for query: '{query}'")
-        cached_data["cached"] = True
+        logger.info(f"DuckDB cache HIT for query: '{search_query}'")
         story_id = cached_data.get("id") or cached_data.get("story_id") or "cjp-dipke-detained"
-        cached_data["id"] = story_id
-        cached_data["news_group_id"] = story_id
-        cached_data["redirect_url"] = f"/story.html?id={story_id}"
-        cached_data["web_url"] = f"http://localhost:8000/web/story.html?id={story_id}"
-        
-        # Optionally populate story detail if available
-        story_obj = database.india_story(story_id)
-        if story_obj:
-            cached_data["story"] = story_detail(request, story_obj)
+        return AnalysisResponse(
+            status="success",
+            id=story_id,
+            news_group_id=story_id,
+            redirect_url=f"/story.html?id={story_id}",
+            web_url=f"http://localhost:8000/web/story.html?id={story_id}",
+            cached=True,
+        )
 
-        return AnalysisResponse(**cached_data)
-
-    logger.info(f"DuckDB cache MISS for query: '{query}'. Running analysis pipeline...")
+    logger.info(f"DuckDB cache MISS for query: '{search_query}'. Running analysis pipeline...")
 
     # 2. Live pipeline execution on cache miss
-    articles = await process_news_search(search_query=query, target_count=request_body.num_articles)
+    articles = await process_news_search(search_query=search_query, target_count=request_body.num_articles)
 
     # AI Mode summarization and perspective analysis
     summary, analyzed_articles, viz_data = await analyze_and_group_news_bias(
-        query=query,
+        query=search_query,
         articles=articles
     )
 
-    slug = re.sub(r"[^\w]+", "-", query.lower()).strip("-")[:40]
+    slug = re.sub(r"[^\w]+", "-", search_query.lower()).strip("-")[:40]
     story_id = slug or f"story-{uuid.uuid4().hex[:8]}"
 
-    response = AnalysisResponse(
+    # 3. Store full analysis and story in DuckDB for future instant cache hits & web views
+    try:
+        storage_data = {
+            "status": "success",
+            "id": story_id,
+            "news_group_id": story_id,
+            "redirect_url": f"/story.html?id={story_id}",
+            "web_url": f"http://localhost:8000/web/story.html?id={story_id}",
+            "cached": True,
+            "query_used": search_query,
+            "articles_fetched_count": len(analyzed_articles),
+            "articles": [a.model_dump() if hasattr(a, "model_dump") else a for a in analyzed_articles],
+            "summary": summary.model_dump() if hasattr(summary, "model_dump") else summary,
+            "visualization_data": viz_data.model_dump() if hasattr(viz_data, "model_dump") else viz_data,
+        }
+        database.save_analyzed_query(search_query, storage_data, story_id=story_id)
+        if raw_query.lower() != search_query.lower():
+            database.save_analyzed_query(raw_query, storage_data, story_id=story_id)
+        database.save_story_from_analysis(storage_data, story_id, search_query)
+        logger.info(f"Saved analysis and story '{story_id}' for query '{search_query}' to DuckDB")
+    except Exception as e:
+        logger.warning(f"Could not persist analysis to DuckDB: {e}")
+
+    # Return only the concise redirection response needed by the extension
+    return AnalysisResponse(
         status="success",
-        query_used=query,
-        articles_fetched_count=len(analyzed_articles),
-        articles=analyzed_articles,
-        summary=summary,
-        visualization_data=viz_data,
         id=story_id,
         news_group_id=story_id,
         redirect_url=f"/story.html?id={story_id}",
         web_url=f"http://localhost:8000/web/story.html?id={story_id}",
-        cached=False
+        cached=False,
     )
-
-    # 3. Store in DuckDB for future instant cache hits & web views
-    try:
-        response_data = response.model_dump()
-        database.save_analyzed_query(query, response_data, story_id=response.id)
-        database.save_story_from_analysis(response_data, response.id, query)
-        logger.info(f"Saved analysis and story '{response.id}' for query '{query}' to DuckDB")
-    except Exception as e:
-        logger.warning(f"Could not persist analysis to DuckDB: {e}")
-
-    return response
 
 
 # -------------------------------------------------------------------------

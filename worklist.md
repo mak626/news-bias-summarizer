@@ -1,14 +1,19 @@
 # Work List
 
 ## 1. Chrome Extension (`extension/`)
-- [ ] **1.1 Scrape user's current web page** &mdash; [`extension/`](extension/)
-  - Extract active news channel/article DOM content
-- [ ] **1.2 Parse to text** &mdash; [`extension/`](extension/)
-  - Extract article headline and body text
-- [ ] **1.3 AI summarization** &mdash; [`extension/`](extension/)
-  - Generate brief initial summary of user's current article
-- [ ] **1.4 Search string** &mdash; [`extension/`](extension/)
-  - Derive search query string and send payload to backend
+- [x] **1.1 Scrape user's current web page** &mdash; [`extension/`](extension/)
+  - Extracts active news channel/article DOM content across Indian Express and generic news pages
+- [x] **1.2 Parse to text** &mdash; [`extension/`](extension/)
+  - Extracts article headline and synopsis text via [`utils/parsers.ts`](extension/utils/parsers.ts)
+- [x] **1.3 AI query compression** &mdash; [`backend/services/query_compressor.py`](backend/services/query_compressor.py)
+  - Compresses article text into concise search query under 20 words using SerpAPI Google AI Mode
+- [x] **1.4 Search string & backend integration** &mdash; [`extension/`](extension/)
+  - Sends `{ query: articleText }` to backend `/api/v1/analyze`, receives `web_url` / `redirect_url`, and redirects user to story view
+- [x] **1.5 Offline Backend Detection & Error UI** &mdash; [`extension/`](extension/)
+  - Real-time `/health` check on mount with status indicator (Online / Offline / Connecting)
+  - Elegant error alerts with retry actions when backend service is offline, unreachable, or returns errors
+- [x] **1.6 Flatten Extension Directory Structure** &mdash; [`extension/`](extension/)
+  - Promoted `extension/client/` directly to `extension/` (removed redundant nesting after `extension/server/` deletion)
 
 ---
 
@@ -49,6 +54,11 @@
   - Dynamic media extraction: OpenGraph `<meta property="og:image">` tags and SerpAPI thumbnails stored to DuckDB stories with SVG fallback
   - Schema alignment: Single clean `query: str` parameter on `AnalysisRequest` with backwards-compatible aliases
   - Test database isolation: Automated tests run against isolated session DuckDB copies with hard safety guards preventing writes to production `data/nonpartisan.duckdb`
+- [x] **2.12 Extension Server Migration to Python & Server Deletion**
+  - Converted TypeScript Hono server into Python [`backend/services/query_compressor.py`](backend/services/query_compressor.py) using SerpAPI Google AI Mode
+  - Replaced Redis with DuckDB persistent caching
+  - Deleted `extension/server/` and removed unwanted `.gitkeep` files
+
 
 
 ---
