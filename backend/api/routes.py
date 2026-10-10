@@ -67,15 +67,20 @@ async def analyze_news_bias(request: AnalysisRequest):
     return response
 
 
-def _cache_mock_response(response: AnalysisResponse) -> None:
-    """Save the latest live response to data/mock_response.json for mock mode usage."""
+def _cache_mock_response(response: AnalysisResponse, force: bool = False) -> None:
+    """Save response to data/mock_response.json only if file does not exist or force=True."""
     try:
+        if MOCK_DATA_PATH.exists() and not force:
+            logger.debug(f"Mock response fixture already exists at {MOCK_DATA_PATH}. Preserving existing fixture.")
+            return
+
         MOCK_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(MOCK_DATA_PATH, "w", encoding="utf-8") as f:
             json.dump(response.model_dump(), f, indent=2, ensure_ascii=False)
-        logger.info(f"Cached latest live analysis response to {MOCK_DATA_PATH}")
+        logger.info(f"Cached analysis response fixture to {MOCK_DATA_PATH}")
     except Exception as e:
         logger.warning(f"Failed to cache response to {MOCK_DATA_PATH}: {e}")
+
 
 
 @router.get("/serpapi/balance", response_model=SerpApiBalanceResponse, tags=["SerpAPI"])
