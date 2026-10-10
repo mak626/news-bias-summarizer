@@ -11,4 +11,5 @@ class NewsArticle(BaseModel):
     date: Optional[str] = Field(None, description="Published date / time relative")
     cleaned_content: Optional[str] = Field(None, description="Cleaned text content extracted from article page")
     content_length: Optional[int] = Field(0, description="Length of cleaned content in characters")
-    bias_info: Optional[ArticleBias] = Field(default_factory=ArticleBias, description="Biasing check results (TODO)")
+    bias_info: Optional[ArticleBias] = Field(default_factory=ArticleBias, description="Biasing check results")
+    image_url: Optional[str] = Field(None, description="Dynamic lead image or thumbnail URL")

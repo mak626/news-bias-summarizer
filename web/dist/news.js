@@ -4,7 +4,7 @@
   let edition;
   try { edition=await NewsApi.loadEdition(); }
   catch (error) {
-    feed.innerHTML=`<div class="india-empty"><h3>Coverage API unavailable</h3><p>Start the web API on port 8001, then reload this page.</p></div>`;
+    feed.innerHTML=`<div class="india-empty"><h3>Coverage API unavailable</h3><p>Start the backend API on port 8000, then reload this page.</p></div>`;
     console.error(error); return;
   }
   const ui = IndiaCoverage;
