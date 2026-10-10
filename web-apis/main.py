@@ -146,6 +146,11 @@ class EditionResponse(BaseModel):
     methodology: str
 
 
+class EditionContent(BaseModel):
+    edition: EditionResponse
+    stories: list[StoryDetail]
+
+
 class LensDefinition(BaseModel):
     id: str
     name: str
@@ -201,6 +206,11 @@ class LabResponse(BaseModel):
     categories: list[str]
     lenses: list[LensDefinition]
     methodology: str
+
+
+class LabContent(BaseModel):
+    lab: LabResponse
+    stories: list[LabStoryDetail]
 
 
 ALIGNMENTS = [
@@ -340,7 +350,7 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:4173", "http://localhost:4173"],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_methods=["GET"], allow_headers=["*"],
 )
 app.mount("/static/images", StaticFiles(directory=WEB_DIST / "images"), name="images")
@@ -390,6 +400,14 @@ def get_story(story_id: str, request: Request):
     return story_detail(request, story)
 
 
+@app.get("/api/v1/edition/content", response_model=EditionContent, tags=["Edition"], summary="Load the complete India edition")
+def get_edition_content(request: Request):
+    return EditionContent(
+        edition=get_edition(),
+        stories=[story_detail(request, story) for story in database.india_stories()],
+    )
+
+
 @app.get("/api/v1/lab", response_model=LabResponse, tags=["Lens Lab"])
 def get_lab():
     stories = database.lab_stories()
@@ -418,6 +436,14 @@ def get_lab_story(story_id: str):
     if not story:
         raise HTTPException(404, detail=f"Lab story '{story_id}' was not found")
     return lab_detail(story)
+
+
+@app.get("/api/v1/lab/content", response_model=LabContent, tags=["Lens Lab"], summary="Load the complete fictional lens lab")
+def get_lab_content():
+    return LabContent(
+        lab=get_lab(),
+        stories=[lab_detail(story) for story in database.lab_stories()],
+    )
 
 
 ILLUSTRATIONS = {

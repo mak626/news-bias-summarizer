@@ -176,6 +176,27 @@
         }
       }
     },
+    "/api/v1/edition/content": {
+      "get": {
+        "tags": [
+          "Edition"
+        ],
+        "summary": "Load the complete India edition",
+        "operationId": "get_edition_content_api_v1_edition_content_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditionContent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lab": {
       "get": {
         "tags": [
@@ -307,6 +328,27 @@
           }
         }
       }
+    },
+    "/api/v1/lab/content": {
+      "get": {
+        "tags": [
+          "Lens Lab"
+        ],
+        "summary": "Load the complete fictional lens lab",
+        "operationId": "get_lab_content_api_v1_lab_content_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabContent"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -383,6 +425,26 @@
           "count"
         ],
         "title": "CoverageGroup"
+      },
+      "EditionContent": {
+        "properties": {
+          "edition": {
+            "$ref": "#/components/schemas/EditionResponse"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/StoryDetail"
+            },
+            "type": "array",
+            "title": "Stories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edition",
+          "stories"
+        ],
+        "title": "EditionContent"
       },
       "EditionResponse": {
         "properties": {
@@ -611,6 +673,26 @@
           "contexts_included"
         ],
         "title": "LabArticle"
+      },
+      "LabContent": {
+        "properties": {
+          "lab": {
+            "$ref": "#/components/schemas/LabResponse"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/LabStoryDetail"
+            },
+            "type": "array",
+            "title": "Stories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lab",
+          "stories"
+        ],
+        "title": "LabContent"
       },
       "LabResponse": {
         "properties": {

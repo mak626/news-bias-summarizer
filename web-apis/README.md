@@ -24,8 +24,10 @@ The API reads `data/nonpartisan.duckdb`. On a fresh checkout, `data/content.json
 
 Useful endpoints:
 
+- `GET /api/v1/edition/content` — complete edition in one frontend request
 - `GET /api/v1/stories`
 - `GET /api/v1/stories/cjp-dipke-detained`
+- `GET /api/v1/lab/content` — complete lens lab in one frontend request
 - `GET /api/v1/lab/stories`
 - `GET /api/v1/lab/stories/metro`
 - `GET /openapi.json`
