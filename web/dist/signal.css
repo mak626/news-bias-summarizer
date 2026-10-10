@@ -8,7 +8,7 @@
 :root[data-theme=light] .evidence-tile:nth-child(1) b{color:var(--gold)}:root[data-theme=light] .evidence-tile:nth-child(2) b{color:var(--blue)}:root[data-theme=light] .evidence-tile:nth-child(3) b{color:var(--coral)}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}.news-tile:hover,.news-tile:hover img{transform:none}}
 
-/* Reusable Ground-News-inspired coverage components. */
+/* Reusable coverage components. */
 .coverage-summary{margin-top:15px;padding-top:12px;border-top:1px solid var(--line)}
 .coverage-summary-top,.coverage-labels{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;line-height:1.4}
 .coverage-summary-top span:first-child{font-weight:650;color:var(--ink)}

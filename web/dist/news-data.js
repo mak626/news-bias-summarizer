@@ -3,14 +3,38 @@
 window.indiaEdition = {
   checked: '10 October 2026',
   through: '9 October 2026',
-  discovery: 'https://ground.news/interest/india',
   stories: [
+    {
+      id:'cjp-dipke-detained', category:'Politics', topics:['narendra-modi'], place:'New Delhi', date:'10 Oct 2026',
+      title:'Police detain Cockroach Janta Party founder ahead of youth protest',
+      dek:'Abhijeet Dipke and other CJP leaders were detained after landing in Delhi before a planned demonstration against the election chief.',
+      summary:'Delhi Police detained Cockroach Janta Party founder Abhijeet Dipke and fellow leaders Saurav Das and Ashutosh Ranka after their flight landed at Indira Gandhi International Airport. The group said the detentions were intended to disrupt a planned Jantar Mantar protest demanding Chief Election Commissioner Gyanesh Kumar’s resignation. Police cited permission and public-order concerns, while reporting also described broad security, transport and internet restrictions around the capital.',
+      art:'protest', read:'3 min',
+      photo:{url:'images/cjp-dipke.jpg',alt:'Abhijeet Dipke speaking to supporters of the Cockroach Janta Party during a sit-in protest in New Delhi.',credit:'Reuters / ABC News',source:'https://www.abc.net.au/news/2026-10-10/indian-police-detain-cockroach-movement-founder-abhijeet-dipke/107251654'},
+      takeaway:'The detention is reported by multiple outlets, while the stated legal basis, the scale of other detentions and the competing accounts of the protest restrictions still require careful attribution.',
+      claims:[
+        {status:'Reported',text:'Delhi Police detained Dipke, Saurav Das and Ashutosh Ranka after their flight landed in Delhi.',source:'ndtv-cjp'},
+        {status:'Reported',text:'The planned protest called for the resignation of Chief Election Commissioner Gyanesh Kumar.',source:'toi-cjp'},
+        {status:'Disputed',text:'CJP described the detentions as a pre-planned effort to stop a peaceful demonstration; police cited permission and public-order concerns.',source:'abc-cjp'},
+        {status:'Context',text:'Reports described extensive police deployment, transport restrictions and mobile-internet curbs around central New Delhi.',source:'ap-cjp'}
+      ],
+      perspectives:[
+        {title:'CJP / protest perspective',text:'CJP leaders said the airport detentions were intended to cripple the protest leadership before demonstrators reached Jantar Mantar.',source:'ndtv-cjp'},
+        {title:'Police / official perspective',text:'Police said permission had been denied because the request was late and authorities cited law-and-order and public-inconvenience concerns.',source:'toi-cjp'}
+      ],
+      gaps:['The exact legal orders and detention locations for each leader', 'Independently verified totals for people detained across Delhi', 'Whether the protest took place and how restrictions affected attendance'],
+      reports:[
+        {id:'abc-cjp',publisher:'ABC News',initials:'ABC',date:'10 Oct',origin:'ABC News',alignment:'mixed',focus:'context',confidence:'Medium',title:'Founder arrested before a protest against the election commission',url:'https://www.abc.net.au/news/2026-10-10/indian-police-detain-cockroach-movement-founder-abhijeet-dipke/107251654',access:'Full report reviewed',evidence:'The report describes Dipke’s arrest, the detention of other leaders, police restrictions and the wider protest dispute over voter-list changes.',why:'The account includes the movement’s allegations, police explanations and broader political context. It does not establish party allegiance from the detention alone.',voice:'CJP, police and protest participants',scope:'Main event'},
+        {id:'ndtv-cjp',publisher:'NDTV India',initials:'N',date:'10 Oct',origin:'NDTV India',alignment:'mixed',focus:'rights',confidence:'Medium',title:'Leaders detained from inside their flight after landing in Delhi',url:'https://www.ndtv.com/india-news/abhijeet-dipke-detained-from-plane-at-delhi-airport-ahead-of-cjps-jantar-mantar-protest-12164977/amp/1',access:'Full report reviewed',evidence:'The report describes police entering the aircraft, the leaders’ objections and CJP’s account of the detentions before the planned protest.',why:'The article foregrounds movement and civil-liberties concerns while reporting the official restrictions and detention figures with attribution.',voice:'CJP leaders and Delhi Police',scope:'Main event'},
+        {id:'toi-cjp',publisher:'The Times of India',initials:'TOI',date:'10 Oct',origin:'The Times of India',alignment:'unclear',focus:'official',confidence:'Low',title:'CJP leaders detained as police tighten security before protest',url:'https://timesofindia.indiatimes.com/india/cjps-abhijeet-dipke-saurav-das-and-ashutosh-ranka-detained-from-delhi-airport-ahead-of-jantar-mantar-protest/amp_articleshow/134847259.cms',access:'Accessible article text reviewed',evidence:'The report leads with the airport detentions and explains police claims about late permission requests, law-and-order concerns and prior protest conditions.',why:'Official restrictions receive prominence, but the available account does not demonstrate a domestic party preference.',voice:'Delhi Police and CJP',scope:'Main event'},
+        {id:'ap-cjp',publisher:'Associated Press',initials:'AP',date:'10 Oct',origin:'Associated Press',alignment:'mixed',focus:'context',confidence:'Medium',title:'Security and transport restrictions surround the planned demonstration',url:'https://apnews.com/article/694330c5352fa82a79d889fb95ad2d44',access:'Full report reviewed',evidence:'The report places detentions and police deployment alongside the protest over voter-list revisions and competing claims from opposition parties and election authorities.',why:'The story preserves competing explanations and connects the event to the wider electoral dispute, supporting a mixed contextual assessment.',voice:'Protest leaders, police, opposition parties and election authorities',scope:'Main event'}
+      ]
+    },
     {
       id: 'delhi-protest', category: 'Politics', place: 'New Delhi', date: '9 Oct 2026',
       title: 'Youth movement vows Delhi protest despite detentions and transport curbs',
       dek: 'A dispute over voter rolls becomes a debate about protest rights and public order.',
       summary: 'Abhijeet Dipke said the youth-led CJP would proceed with its planned 10 October demonstration seeking election chief Gyanesh Kumar’s resignation. Reuters reported the organisers’ detention allegations as unverified, alongside the police position that permission had not been granted. Opposition parties allege partisan voter exclusions; the Election Commission disputes that account.',
-      ground: 'https://ground.news/article/indian-youth-leader-says-protest-will-go-ahead-despite-detentions_6ee109',
       art: 'protest', read: '4 min',
       photo: {url:'images/delhi-protest.webp',alt:'Publisher composite showing a protest crowd and a Delhi Police spokesperson.',credit:'Organiser · publisher composite',source:'https://organiser.org/2026/10/09/385516/bharat/delhi-police-rejects-cjps-jantar-mantar-protest-cites-short-notice-and-previous-violations/'},
       takeaway: 'The detention totals are organisers’ claims, not independently established counts. Police restrictions and allegations of voter manipulation need separate scrutiny.',
@@ -38,7 +62,6 @@ window.indiaEdition = {
       title:'India challenges US green-card restrictions and Vance’s remarks',
       dek:'PERM processing and H-1B status are different questions. The distinction matters.',
       summary:'India’s foreign ministry criticised the US action affecting eight technology employers and rejected J.D. Vance’s description of foreign professionals. The reporting distinguishes suspended PERM green-card processing from existing H-1B visa status. RNA’s account also includes the US allegations and Microsoft’s rebuttal.',
-      ground:'https://ground.news/article/india-rebukes-us-h-1b-suspension-and-jd-vance-remarks_0ac0ff',
       art:'diplomacy', read:'3 min',
       photo: {url:'images/india-us-mea.png',alt:'Publisher composite of MEA spokesperson Randhir Jaiswal and a US visa graphic.',credit:'Free Press Journal · publisher composite',source:'https://www.freepressjournal.in/tech/deeply-offensive-mea-rebukes-jd-vances-indentured-servants-remark-as-us-suspends-indian-tech-firms-from-green-card-programme'},
       takeaway:'The reported measure concerns a green-card process. It should not be described as automatic cancellation of existing H-1B visas.',
@@ -63,7 +86,6 @@ window.indiaEdition = {
       title:'Modi marks 25 years leading governments with a pledge for a developed India',
       dek:'The milestone address mixes a government record, political messaging and the 2047 development goal.',
       summary:'Narendra Modi marked 25 years since becoming Gujarat chief minister. At the Delhi event, he pledged to keep working toward a developed India by 2047. The Indian Express places the speech alongside questions about his political future and the protests facing his government.',
-      ground:'https://ground.news/article/pm-modi-speaks-at-viksit-bharat-sankalp-sabha-delhi-celebrating-25-years-of-public-service-the-economic-times-video_7c61df',
       art:'protest', read:'2 min',
       photo:{url:'images/modi-milestone.jpg',alt:'Narendra Modi waves to supporters holding BJP flags as flower petals fill the scene.',credit:'X / @BJP4India · via The Indian Express',source:'https://indianexpress.com/article/political-pulse/pm-modi-25-years-speech-key-takeaways-viksit-bharat-10910888/'},
       takeaway:'A political address presents the speaker’s account. Its development claims require independent checking.',
@@ -77,7 +99,6 @@ window.indiaEdition = {
       title:'Musk alleges rivals are blocking Starlink; India defends its approval process',
       dek:'A market-access dispute puts competition, security checks and satellite internet in focus.',
       summary:'Elon Musk alleged that powerful business interests were delaying Starlink’s Indian launch. The Communications Ministry rejected suggestions of unequal treatment and said security assessments were ongoing. Reporting distinguishes a satellite licence from permission to begin commercial service; the allegation of improper obstruction remains unproven in the reviewed accounts.',
-      ground:'https://ground.news/article/elon-musk-says-starlinks-entry-in-india-blocked-by-oligarchs-alleges-monopolistic-chokehold_d91b49',
       art:'economy', read:'3 min',
       photo:{url:'images/starlink-india.jpg',alt:'Elon Musk speaking with his hands raised, against a dark stage background.',credit:'The Indian Express · file photo',source:'https://indianexpress.com/article/world/musk-oligarchs-blocking-starlink-india-10911695/'},
       takeaway:'Musk’s accusation is a claim, not an established finding. A licence and final operational clearance are separate steps.',
@@ -103,7 +124,6 @@ window.indiaEdition = {
       title:'Indian mission issues safety advisory for nationals in Saudi Arabia',
       dek:'Read the advisory alongside regional reporting, and separate safety information from party bias.',
       summary:'The embassy advisory urges vigilance and staying indoors as necessary. Gulf News situates the notice amid reports of missile interceptions and includes competing regional accounts. Akashvani reports that diplomatic and outsourced services continue. The official mission publishes the dated advisory for readers to consult.',
-      ground:'https://ground.news/article/indian-embassy-warns-nationals-in-saudi-stay-indoors-refrain-from-sharing-videos',
       art:'saudi', read:'3 min',
       photo: {url:'images/saudi-advisory.jpg',alt:'The Hindustan Times report image shows smoke beyond an airport terminal.',credit:'Hindustan Times · report image',source:'https://www.hindustantimes.com/india-news/indian-embassy-warns-nationals-in-saudi-stay-indoors-refrain-from-sharing-videos-101791470192391.html'},
       takeaway:'The official advisory is the reference for safety updates. Repeating consular instructions alone does not establish support for the ruling party.',
