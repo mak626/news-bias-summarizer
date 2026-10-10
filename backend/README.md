@@ -143,11 +143,12 @@ backend/
 │   ├── serp_service.py         # Google News fetching & SerpAPI Account API client
 │   ├── article_scraper.py      # curl_cffi TLS impersonation, OpenGraph extraction & reader fallback
 │   ├── news_processor.py       # Candidate gathering & 5-article failover pipeline
+│   ├── query_compressor.py     # SerpAPI Google AI Mode headline compression & query distillation
 │   ├── ai_bias_service.py      # Google AI Mode dynamic perspective analysis engine
 │   └── web_content.py          # Data transformers for edition & lab story models
 └── tests/
     ├── conftest.py             # Automated test session DB isolation setup & teardown
-    └── test_main.py            # Comprehensive test suite (13 passing tests)
+    └── test_main.py            # Comprehensive test suite (14 passing tests)
 ```
 
 ---
@@ -266,10 +267,10 @@ make test
 ```
 Output:
 ```text
-tests/test_main.py .............                                         [100%]
-============================= 13 passed in 4.18s ==============================
+tests/test_main.py ..............                                        [100%]
+============================= 14 passed in 4.18s ==============================
 ```
-*(All 13 tests execute against an isolated temporary DuckDB file; the production database `data/nonpartisan.duckdb` is never modified).*
+*(All 14 tests execute against an isolated temporary DuckDB file; the production database `data/nonpartisan.duckdb` is never modified).*
 
 ### 5. Makefile Command Reference
 | Command | Action |

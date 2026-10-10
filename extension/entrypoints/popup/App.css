@@ -1,0 +1,328 @@
+/* Catppuccin Latte (light) — flat, no shadows */
+.np-popup {
+  --ctp-base: #eff1f5;
+  --ctp-mantle: #e6e9ef;
+  --ctp-crust: #dce0e8;
+  --ctp-surface0: #ccd0da;
+  --ctp-surface1: #bcc0cc;
+  --ctp-overlay0: #9ca0b0;
+  --ctp-text: #4c4f69;
+  --ctp-subtext0: #6c6f85;
+  --ctp-subtext1: #5c5f77;
+  --ctp-lavender: #7287fd;
+  --ctp-mauve: #8839ef;
+  --ctp-mauve-hover: #7528dd;
+  --ctp-blue: #1e66f5;
+
+  width: 340px;
+  min-height: 380px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ctp-base);
+  color: var(--ctp-text);
+  border: 1px solid var(--ctp-surface0);
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.np-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background-color: var(--ctp-mantle);
+  border-bottom: 1px solid var(--ctp-surface0);
+}
+
+.np-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.np-brand:hover {
+  background-color: var(--ctp-surface0);
+}
+
+.np-brand:focus-visible {
+  outline: 2px solid var(--ctp-lavender);
+  outline-offset: 2px;
+}
+
+.np-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+  background-color: var(--ctp-base);
+  border: 1px solid var(--ctp-surface0);
+  padding: 3px;
+}
+
+.np-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ctp-text);
+}
+
+/* Status badge in header */
+.np-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.np-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.np-status-badge.is-online {
+  background-color: rgba(64, 160, 43, 0.12);
+  color: #3b8b29;
+  border: 1px solid rgba(64, 160, 43, 0.3);
+}
+
+.np-status-badge.is-online .np-status-dot {
+  background-color: #40a02b;
+  box-shadow: 0 0 6px rgba(64, 160, 43, 0.6);
+}
+
+.np-status-badge.is-offline {
+  background-color: rgba(210, 15, 57, 0.12);
+  color: #d20f39;
+  border: 1px solid rgba(210, 15, 57, 0.3);
+}
+
+.np-status-badge.is-offline .np-status-dot {
+  background-color: #d20f39;
+  box-shadow: 0 0 6px rgba(210, 15, 57, 0.6);
+}
+
+.np-status-badge.is-checking {
+  background-color: rgba(114, 135, 253, 0.12);
+  color: #7287fd;
+  border: 1px solid rgba(114, 135, 253, 0.3);
+}
+
+.np-status-badge.is-checking .np-status-dot {
+  background-color: #7287fd;
+  animation: np-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes np-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.np-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 18px;
+}
+
+.np-title {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--ctp-text);
+}
+
+.np-subtitle {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ctp-subtext0);
+  max-width: 28ch;
+}
+
+/* Alert banner */
+.np-alert {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: var(--ctp-text);
+  animation: np-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes np-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.np-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.np-alert-icon {
+  color: #e11d48;
+  flex-shrink: 0;
+}
+
+.np-alert-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #be123c;
+  flex: 1;
+}
+
+.np-alert-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #9ca0b0;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.np-alert-close:hover {
+  color: #4c4f69;
+}
+
+.np-alert-message {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #5c5f77;
+}
+
+.np-alert-action {
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+  background-color: #ffffff;
+  color: #e11d48;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.np-alert-action:hover:not(:disabled) {
+  background-color: #fee2e2;
+  border-color: #f87171;
+}
+
+.np-alert-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.np-button {
+  margin-top: 2px;
+  width: 100%;
+  padding: 0.78em 1.2em;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #eff1f5;
+  background-color: var(--ctp-mauve);
+  border: 1px solid var(--ctp-mauve);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.np-button:hover:not(:disabled) {
+  background-color: var(--ctp-mauve-hover);
+  border-color: var(--ctp-mauve-hover);
+}
+
+.np-button:active:not(:disabled) {
+  background-color: var(--ctp-mauve-hover);
+}
+
+.np-button:focus-visible {
+  outline: 2px solid var(--ctp-lavender);
+  outline-offset: 2px;
+}
+
+.np-button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* Button spinner */
+.np-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.np-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: np-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes np-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.np-footer {
+  padding: 12px 16px 16px;
+  font-size: 0.8rem;
+  color: var(--ctp-overlay0);
+}
+
+.np-footer a {
+  color: var(--ctp-subtext1);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.np-footer a:hover {
+  color: var(--ctp-mauve);
+  text-decoration: underline;
+}

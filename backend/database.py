@@ -16,7 +16,7 @@ import shutil
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "nonpartisan.duckdb"
 SEED_PATH = BASE_DIR / "data" / "content.json"
-MOCK_PATH = BASE_DIR / "data" / "mock_response.json"
+MOCK_PATH = BASE_DIR / "tests" / "fixtures" / "mock_response.json"
 
 
 def is_test_environment() -> bool:

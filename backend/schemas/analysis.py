@@ -41,14 +41,10 @@ class AnalysisRequest(BaseModel):
 
 class AnalysisResponse(BaseModel):
     status: ResponseStatus = Field(ResponseStatus.SUCCESS, description="Status of the response")
-    query_used: str
-    articles_fetched_count: int
-    articles: List[NewsArticle]
-    summary: SummaryResult
-    visualization_data: VisualizationData
-    id: Optional[str] = Field(None, description="Story or news-group ID for frontend routing")
-    news_group_id: Optional[str] = Field(None, description="Alias for extension redirection")
-    redirect_url: Optional[str] = Field(None, description="Relative URL to view the story in web app")
-    web_url: Optional[str] = Field(None, description="Direct URL to view the story in web app")
+    id: str = Field(..., description="Story or news-group ID for frontend routing")
+    news_group_id: str = Field(..., description="Alias for extension redirection")
+    redirect_url: str = Field(..., description="Relative URL to view the story in web app")
+    web_url: str = Field(..., description="Direct URL to view the story in web app")
     cached: bool = Field(False, description="True if served from DuckDB cache")
-    story: Optional[StoryDetail] = Field(None, description="Full story detail formatted for web edition")
+
+

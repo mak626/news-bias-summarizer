@@ -1,7 +1,7 @@
 import { PARSE_ARTICLE_MESSAGE, parseArticle } from '@/utils/parsers';
 
 export default defineContentScript({
-  matches: ['*://*.indianexpress.com/*'],
+  matches: ['<all_urls>'],
   main() {
     browser.runtime.onMessage.addListener((message: unknown) => {
       if (
